@@ -116,8 +116,11 @@ body {
   position: sticky;
   top: var(--safe-area-top);
   z-index: 40;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px);
+  /* Opaque headers prevent iOS standalone compositing from blurring the
+     title and avatar next to the status-bar safe area. */
+  background: var(--bg-card);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
   border-bottom: 1px solid var(--border-color);
 }
 
