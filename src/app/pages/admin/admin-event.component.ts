@@ -115,7 +115,7 @@ import { EventStateService } from '../../services/event-state.service';
       gap: 12px;
     }
 
-    @media (max-width: 380px) {
+    @media (max-width: 480px) {
       .form-row {
         grid-template-columns: minmax(0, 1fr);
       }
@@ -137,6 +137,26 @@ import { EventStateService } from '../../services/event-state.service';
       border: 1.5px solid var(--border-color);
       font-size: 0.95rem;
       font-family: inherit;
+    }
+
+    .input-control[type="date"],
+    .input-control[type="time"] {
+      -webkit-appearance: none;
+      appearance: none;
+      display: block;
+      min-height: 46px;
+      background: white;
+      color: var(--text-main);
+    }
+
+    .input-control::-webkit-date-and-time-value {
+      min-width: 0;
+      text-align: left;
+    }
+
+    .input-control::-webkit-datetime-edit {
+      min-width: 0;
+      padding: 0;
     }
 
     .input-control:focus {
