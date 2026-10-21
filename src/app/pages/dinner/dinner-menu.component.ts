@@ -206,6 +206,10 @@ import { EventStateService } from '../../services/event-state.service';
 
       </div>
 
+    </div>
+
+      <!-- Keep the fixed bar outside the animated page (a transformed ancestor
+           otherwise makes position: fixed move with the scrolling content). -->
       <!-- Footer Total Bar -->
       <div class="footer-total-bar">
         <div class="total-col">
@@ -218,13 +222,18 @@ import { EventStateService } from '../../services/event-state.service';
         </button>
         }
       </div>
-    </div>
   `,
   styles: [`
+    :host {
+      display: block;
+      --dinner-total-bar-height: 84px;
+    }
+
     .page-container {
       display: flex;
       flex-direction: column;
       min-height: 100vh;
+      padding-bottom: calc(var(--dinner-total-bar-height) + var(--bottom-nav-content-height));
       background: var(--bg-app);
     }
 
@@ -243,7 +252,7 @@ import { EventStateService } from '../../services/event-state.service';
 
     .content-scroll {
       flex: 1;
-      padding: 20px 18px 160px;
+      padding: 20px 18px 24px;
     }
 
     .dinner-tabs {
@@ -394,6 +403,7 @@ import { EventStateService } from '../../services/event-state.service';
     }
 
     .footer-total-bar {
+      height: var(--dinner-total-bar-height);
       position: fixed;
       bottom: var(--bottom-nav-height);
       left: 50%;
