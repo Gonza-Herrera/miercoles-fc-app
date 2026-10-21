@@ -2,6 +2,7 @@ import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { getDinnerItemIcon } from '../../utils/dinner-item-icon';
 import { AuthService } from '../../services/auth.service';
 import { EventStateService } from '../../services/event-state.service';
 
@@ -133,7 +134,7 @@ import { EventStateService } from '../../services/event-state.service';
           @for (item of state.currentEvent().menuItems; track item.id) {
             <div class="menu-item-row">
               <div class="item-left">
-                <span class="item-icon">{{ item.icon }}</span>
+                <span class="item-icon">{{ itemIcon(item.name, item.icon) }}</span>
                 <div class="item-text-group">
                   <span class="item-name">{{ item.name }}</span>
                   <!-- Comprador asignado a este ítem particular o general -->
@@ -731,6 +732,7 @@ import { EventStateService } from '../../services/event-state.service';
   `]
 })
 export class DinnerMenuComponent {
+  itemIcon = getDinnerItemIcon;
   auth = inject(AuthService);
   state = inject(EventStateService);
   private router = inject(Router);
@@ -790,7 +792,7 @@ export class DinnerMenuComponent {
   async confirmAddItem() {
     if (!this.state.canEditDinner()) return;
     if (!this.newItemName.trim() || !Number.isFinite(this.newItemAmount) || this.newItemAmount <= 0) return;
-    if (!await this.state.addMenuItem(this.newItemName, this.newItemAmount, '🍽️', this.newItemBuyerId)) return;
+    if (!await this.state.addMenuItem(this.newItemName, this.newItemAmount, getDinnerItemIcon(this.newItemName), this.newItemBuyerId)) return;
     this.newItemName = '';
     this.newItemAmount = 0;
     this.newItemBuyerId = undefined;
