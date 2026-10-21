@@ -1,0 +1,272 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&display=swap');
+
+:root {
+  /* Color Palette - Miércoles FC */
+  --primary: #4F46E5;
+  --primary-hover: #4338CA;
+  --primary-light: #EEF2FF;
+  --primary-dark: #3730A3;
+  
+  --secondary: #064E3B;
+  --accent-soccer: #2563EB;
+  --accent-dinner: #EA580C;
+  --accent-dinner-light: #FFF7ED;
+  --accent-dinner-border: #FFEDD5;
+
+  --pitch-green: #15803d;
+  --pitch-green-dark: #14532d;
+  --pitch-lines: rgba(255, 255, 255, 0.45);
+
+  --badge-juega-cena-bg: #ECFDF5;
+  --badge-juega-cena-text: #059669;
+  --badge-solo-juega-bg: #EFF6FF;
+  --badge-solo-juega-text: #2563EB;
+  --badge-solo-cena-bg: #FFF1F2;
+  --badge-solo-cena-text: #E11D48;
+
+  --bg-app: #F8FAFC;
+  --bg-card: #FFFFFF;
+  --border-color: #E2E8F0;
+  --border-color-light: #F1F5F9;
+
+  --text-main: #0F172A;
+  --text-muted: #64748B;
+  --text-light: #94A3B8;
+
+  --success: #10B981;
+  --success-bg: #ECFDF5;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04);
+  --shadow-float: 0 20px 25px -5px rgb(79 70 229 / 0.15);
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-full: 9999px;
+
+  --bottom-nav-height: 68px;
+  --header-height: 56px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: #0F172A; /* Outer backdrop for desktop */
+  color: var(--text-main);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  overflow-x: hidden;
+}
+
+/* App Shell container: responsive mobile-first frame */
+.app-viewport {
+  width: 100%;
+  max-width: 480px; /* Perfect native mobile width */
+  min-height: 100vh;
+  background-color: var(--bg-app);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 0 50px rgba(0, 0, 0, 0.4);
+}
+
+/* Navigation Bars */
+.header-bar {
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.header-bar.transparent {
+  background: transparent;
+  border-bottom: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+}
+
+.avatar-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background: #E0E7FF;
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  border: 2px solid white;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+}
+
+/* Buttons and Inputs */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 20px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  border-radius: var(--radius-md);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+  background: var(--primary-hover);
+}
+
+.btn-secondary {
+  background: white;
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+}
+
+.btn-secondary:active {
+  background: var(--border-color-light);
+}
+
+.btn-dinner {
+  background: #EA580C;
+  color: white;
+  box-shadow: 0 4px 14px rgba(234, 88, 12, 0.35);
+}
+
+.btn-dinner:active {
+  background: #C2410C;
+  transform: scale(0.98);
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+}
+
+/* Badges */
+.badge-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.badge-status.juega-cena {
+  background: var(--badge-juega-cena-bg);
+  color: var(--badge-juega-cena-text);
+}
+
+.badge-status.solo-juega {
+  background: var(--badge-solo-juega-bg);
+  color: var(--badge-solo-juega-text);
+}
+
+.badge-status.solo-cena {
+  background: var(--badge-solo-cena-bg);
+  color: var(--badge-solo-cena-text);
+}
+
+/* Bottom Navigation Bar */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
+  height: var(--bottom-nav-height);
+  background: #FFFFFF;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  z-index: 50;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  color: var(--text-light);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  width: 25%;
+  height: 100%;
+  transition: color 0.15s ease;
+}
+
+.nav-item.active {
+  color: var(--primary);
+}
+
+.nav-item svg {
+  width: 22px;
+  height: 22px;
+  transition: transform 0.15s ease;
+}
+
+.nav-item.active svg {
+  transform: translateY(-2px);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.25s ease-out forwards;
+}
+
+/* Floating Action Footer for subviews: debe elevarse por encima de la bottom-nav */
+.sticky-footer-action {
+  position: sticky;
+  bottom: var(--bottom-nav-height);
+  background: rgba(248, 250, 252, 0.95);
+  backdrop-filter: blur(8px);
+  padding: 14px 20px 16px;
+  z-index: 45;
+  border-top: 1px solid rgba(226, 232, 240, 0.8);
+}
