@@ -130,6 +130,16 @@ function session(id, admin) {
   ]);
   assert.equal(simultaneous.filter(Boolean).length, 1, 'Exactly one stale-version concurrent save succeeds');
   await admin.refreshAfterError();
+  const editVersion = admin.getEventVersion();
+  const originalAttendance = JSON.stringify(admin.currentEvent().attendances);
+  const editData = { title: 'Miércoles actualizado', date: '2026-10-28', time: '22:30', location: 'Nueva dirección', pitchPrice: 55000.01 };
+  assert.equal(await player.editEventDetails(editData, player.currentEvent().id, player.getEventVersion()), false);
+  assert.equal(await admin.editEventDetails(editData, admin.currentEvent().id, editVersion), true);
+  assert.equal(admin.currentEvent().location, 'Nueva dirección');
+  assert.equal(admin.currentEvent().time, '22:30');
+  assert.equal(JSON.stringify(admin.currentEvent().attendances), originalAttendance, 'Editing preserves RSVPs');
+  assert.equal(await admin.editEventDetails({ ...editData, location: 'Stale form' }, admin.currentEvent().id, editVersion), false, 'An old edit form must not overwrite a newer version');
+  await admin.refreshAfterError();
   const beforePlayer = JSON.stringify(player.currentEvent());
   assert.equal(await player.updateDinnerTitle('Forbidden'), false);
   assert.equal(await player.setPayment('pitch', 'player', true), false);
@@ -140,6 +150,7 @@ function session(id, admin) {
   assert.equal(await admin.startMatch(), true);
   assert.equal(await admin.confirmMatch(['admin','player']), true);
   assert.equal(admin.matchClosed(), true);
+  assert.equal(await admin.editEventDetails({ ...editData, pitchPrice: 1 }, admin.currentEvent().id, admin.getEventVersion()), false, 'Closed pitch price is protected');
   assert.equal(Math.round((admin.shareFor('pitch','admin')+admin.shareFor('pitch','player'))*100),5500001);
   network = 'lost-response';
   assert.equal(await admin.setPayment('pitch', 'player', true), false);

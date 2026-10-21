@@ -163,10 +163,12 @@ export class EventStateService {
   }
   dismissNotice() { this.notice.set(null); }
 
-  updateEvent(update: (event: SoccerEvent) => SoccerEvent): Promise<boolean> {
+  getEventVersion(): number { return this.version; }
+
+  updateEvent(update: (event: SoccerEvent) => SoccerEvent, expectedVersion = this.version): Promise<boolean> {
     if (!this.hasEvent() || !this.auth.isAdmin()) return Promise.resolve(false);
     const { id, attendances, matchPaidPlayerIds, dinnerPaidPlayerIds, ...data } = update(this.currentEvent());
-    const version = this.version;
+    const version = expectedVersion;
     const operation = crypto.randomUUID();
     return this.runSave(async () => {
       const { data: rows, error } = await this.sb.rpc('save_event', {
@@ -177,6 +179,26 @@ export class EventStateService {
       this.applyRecord(rows[0], attendances);
       this.players.update(players => players.map(player => ({ ...player, role: rows[0].data.playerRoles?.[player.id] ?? player.role })));
     });
+  }
+
+  editEventDetails(
+    data: Pick<SoccerEvent, 'title' | 'date' | 'time' | 'location' | 'pitchPrice'>,
+    eventId: string,
+    version: number
+  ): Promise<boolean> {
+    if (!this.auth.isAdmin() || !this.hasEvent()) return Promise.resolve(false);
+    if (this.currentEvent().id !== eventId || this.dinnerClosed()) {
+      this.error.set('El evento cambió o ya está finalizado. Volvé a Inicio y revisá sus datos.');
+      return Promise.resolve(false);
+    }
+    if (!data.title.trim() || !data.location.trim() || !data.date || !data.time ||
+        !Number.isFinite(data.pitchPrice) || data.pitchPrice <= 0) return Promise.resolve(false);
+    if (this.matchClosed() && data.pitchPrice !== this.currentEvent().pitchPrice) {
+      this.error.set('El precio de cancha no puede cambiar después de confirmar el reparto.');
+      return Promise.resolve(false);
+    }
+    return this.updateEvent(evt => ({ ...evt, title: data.title.trim(), date: data.date,
+      time: data.time, location: data.location.trim(), pitchPrice: data.pitchPrice }), version);
   }
 
   startMatch() {

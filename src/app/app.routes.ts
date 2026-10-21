@@ -49,6 +49,7 @@ export const routes: Routes = [
   { path: 'pagos/resumen-total', component: TotalSummaryComponent,   canActivate: [authGuard, eventGuard] },
 
   // ── Admin (requires admin role) ────────────────────────────────────────────
+  { path: 'admin/editar-evento', component: AdminEventComponent, data: { edit: true }, canActivate: [adminGuard, eventGuard] },
   { path: 'admin/nuevo-evento', component: AdminEventComponent, canActivate: [adminGuard] },
 
   { path: '**', redirectTo: '' }

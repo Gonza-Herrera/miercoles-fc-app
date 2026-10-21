@@ -1,6 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { EventStateService } from '../../services/event-state.service';
 
@@ -16,7 +16,7 @@ import { EventStateService } from '../../services/event-state.service';
             <polyline points="15 18 9 12 15 6"></polyline>
           </svg>
         </button>
-        <span class="header-title">Crear Nuevo Miércoles</span>
+        <span class="header-title">{{ editing ? 'Editar Miércoles' : 'Crear Nuevo Miércoles' }}</span>
         <div class="avatar-badge">GH</div>
       </header>
 
@@ -39,13 +39,16 @@ import { EventStateService } from '../../services/event-state.service';
           </div>
 
           <div class="form-group">
-            <label>Lugar de la cancha</label>
+            <label>Lugar / dirección de la cancha</label>
             <input type="text" [(ngModel)]="location" class="input-control" placeholder="Sale Futbol" />
           </div>
 
           <div class="form-group">
             <label>Precio Cancha ($)</label>
-            <input type="number" [(ngModel)]="pitchPrice" class="input-control" placeholder="55000" min="1" />
+            <input type="number" [disabled]="editing && state.matchClosed()" [(ngModel)]="pitchPrice" class="input-control" placeholder="55000" min="1" />
+            @if (editing && state.matchClosed()) {
+              <small>El precio está cerrado porque los presentes del partido ya fueron confirmados.</small>
+            }
           </div>
 
         </div>
@@ -55,8 +58,8 @@ import { EventStateService } from '../../services/event-state.service';
         <p class="form-error" role="alert">{{ state.error() }}</p>
       }
       <div class="sticky-footer-action">
-        <button class="btn btn-primary btn-block" [disabled]="saving() || !isValid()" (click)="createEvent()">
-          {{ saving() ? 'Publicando…' : 'Publicar Miércoles FC' }}
+        <button class="btn btn-primary btn-block" [disabled]="saving() || !isValid() || (editing && state.dinnerClosed())" (click)="saveEvent()">
+          {{ saving() ? 'Guardando…' : editing ? 'Guardar cambios' : 'Publicar Miércoles FC' }}
         </button>
       </div>
     </div>
@@ -151,12 +154,16 @@ import { EventStateService } from '../../services/event-state.service';
 export class AdminEventComponent {
   state = inject(EventStateService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
+  readonly editing = this.route.snapshot.data['edit'] === true;
+  private readonly eventId = this.editing ? this.state.currentEvent().id : '';
+  private readonly eventVersion = this.state.getEventVersion();
 
-  title = '';
-  date = '';
-  time = '';
-  location = '';
-  pitchPrice: number | null = null;
+  title = this.editing ? this.state.currentEvent().title : '';
+  date = this.editing ? this.state.currentEvent().date : '';
+  time = this.editing ? this.state.currentEvent().time : '';
+  location = this.editing ? this.state.currentEvent().location : '';
+  pitchPrice: number | null = this.editing ? this.state.currentEvent().pitchPrice : null;
   saving = signal(false);
 
   isValid() {
@@ -168,17 +175,20 @@ export class AdminEventComponent {
     this.router.navigate(['/']);
   }
 
-  async createEvent() {
+  async saveEvent() {
     if (this.saving() || !this.isValid()) return;
     this.saving.set(true);
-    const created = await this.state.createNewEvent({
+    const details = {
       title: this.title,
       date: this.date,
       time: this.time,
       location: this.location,
       pitchPrice: this.pitchPrice!
-    });
+    };
+    const saved = this.editing
+      ? await this.state.editEventDetails(details, this.eventId, this.eventVersion)
+      : await this.state.createNewEvent(details);
     this.saving.set(false);
-    if (created) this.router.navigate(['/']);
+    if (saved) this.router.navigate(['/']);
   }
 }

@@ -166,6 +166,9 @@ import { AuthService } from '../../services/auth.service';
         <!-- ACCIONES RÁPIDAS DE GESTIÓN -->
         <div class="quick-admin-box">
           <div class="quick-title">Gestión del Miércoles</div>
+          @if (auth.isAdmin() && !state.dinnerClosed()) {
+            <button class="btn btn-secondary" style="margin-bottom: 12px; width: 100%" routerLink="/admin/editar-evento">Editar evento</button>
+          }
           <div class="quick-grid">
             <button class="quick-btn" routerLink="/partido/confirmados">
               <span class="q-icon">👥</span>
@@ -227,6 +230,9 @@ import { AuthService } from '../../services/auth.service';
 
         <!-- Actions -->
         @if (auth.isAdmin()) {
+          @if (state.hasEvent() && !state.dinnerClosed()) {
+            <button class="sheet-action sheet-action-primary" routerLink="/admin/editar-evento" (click)="closeProfile()">Editar evento</button>
+          }
           <button class="sheet-action sheet-action-primary" routerLink="/admin/nuevo-evento" (click)="closeProfile()">Crear un evento</button>
         }
         <button class="sheet-action" id="btn-sign-out" (click)="signOut()">
