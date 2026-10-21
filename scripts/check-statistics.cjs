@@ -12,7 +12,8 @@ function loadModule(path, imports = {}, globals = {}) {
     Date, Map, Set, AbortController, setTimeout, clearTimeout, ...globals });
   return exports;
 }
-const { calculateStatistics } = loadModule('src/app/utils/event-statistics.ts');
+const sportsUtils = loadModule('src/app/utils/sports-statistics.ts');
+const { calculateStatistics } = loadModule('src/app/utils/event-statistics.ts', { './sports-statistics': sportsUtils });
 const today = new Date(2026, 9, 21);
 const event = (id, date, status, played, ate, pitchPrice = 100, amounts = [20]) => ({
   id, data: { date, status, pitchPrice, matchPlayedPlayerIds: played,
@@ -50,13 +51,49 @@ assert.equal(empty.averageDinnerCost, null);
 assert.equal(empty.players.length, 0);
 assert.equal(calculateStatistics([event('midnight', '2026-10-01', 'completed', ['a'], [])], 'month', today).matches, 1);
 
+const fixtureIds = new Map();
+const fixtureId = id => { if (!fixtureIds.has(id)) fixtureIds.set(id, require('node:crypto').randomUUID()); return fixtureIds.get(id); };
+const fixture = (id, homeScore, awayScore, players = [], mvpPlayerId = null) => ({
+  id: fixtureId(id), homeTeamId: 'A', awayTeamId: 'B', homeScore, awayScore, players, mvpPlayerId
+});
+const sportingEvent = event('sports', '2026-10-07', 'completed', ['a', 'b', 'c'], []);
+sportingEvent.data.teams = { teams: [
+  { id: 'A', playerIds: ['a', 'c', 'absent'] }, { id: 'B', playerIds: ['b'] }, { id: 'C', playerIds: ['absent'] }
+] };
+sportingEvent.event_sports = { data: { fixtures: [
+  fixture('first', 2, 1, [{ playerId: 'a', goals: 1, assists: 1 }, { playerId: 'c', goals: 1, assists: 0 }, { playerId: 'b', goals: 1, assists: 0 }], 'a'),
+  fixture('second', 0, 0)
+] } };
+const sporting = calculateStatistics([sportingEvent], 'month', today);
+assert.equal(sporting.matches, 1); // Attendance still counts dates; sports counts each fixture.
+assert.equal(sporting.sports.fixtures, 2);
+assert.equal(sporting.sports.goals, 3);
+const playerA = sporting.sports.players.find(p => p.id === 'a');
+assert.equal(playerA.wins, 1); assert.equal(playerA.draws, 1); assert.equal(playerA.losses, 0);
+assert.equal(playerA.goals, 1); assert.equal(playerA.assists, 1); assert.equal(playerA.mvps, 1);
+assert.equal(playerA.played, 2);
+assert.equal(sporting.sports.players.find(p => p.id === 'b').losses, 1);
+assert.equal(sporting.sports.players.some(p => p.id === 'absent'), false);
+assert.equal(calculateStatistics([sportingEvent], 'month', new Date(2026, 10, 1)).sports.fixtures, 0);
+assert.ok(sportsUtils.validateSports({ ...sportingEvent.data, status: 'playing' }, sportingEvent.event_sports.data));
+assert.ok(sportsUtils.validateSports(sportingEvent.data, { fixtures: [fixture('bad', null, 0)] }));
+assert.ok(sportsUtils.validateSports(sportingEvent.data, { fixtures: [fixture('bad', -1, 0)] }));
+assert.ok(sportsUtils.validateSports(sportingEvent.data, { fixtures: [fixture('bad', 1.5, 0)] }));
+assert.ok(sportsUtils.validateSports(sportingEvent.data, { fixtures: [fixture('bad', 2, 1, [], 'absent')] }));
+assert.ok(sportsUtils.validateSports(sportingEvent.data, { fixtures: [fixture('bad', 2, 1, [{ playerId: 'absent', goals: 0, assists: 0 }])] }));
+assert.ok(sportsUtils.validateSports(sportingEvent.data, { fixtures: [fixture('bad', 2, 1, [{ playerId: 'a', goals: 3, assists: 0 }])] }));
+assert.ok(sportsUtils.validateSports(sportingEvent.data, { fixtures: [fixture('bad', 2, 1, [{ playerId: 'a', goals: 2, assists: 1 }])] }));
+assert.ok(sportsUtils.validateSports(sportingEvent.data, { fixtures: [fixture('bad', 2, 1, [{ playerId: 'a', goals: 0, assists: 3 }])] }));
+assert.equal(sportsUtils.validateSports(sportingEvent.data, { fixtures: [fixture('unattributed', 5, 0)] }), null);
+assert.equal(calculateStatistics([event('no-result', '2026-10-01', 'completed', ['a'], [])], 'all', today).sports.players.length, 0);
+
 let fail = false;
 const ranges = [];
 const pages = Array.from({ length: 201 }, (_, i) => event(String(i), '2026-10-01', 'completed', ['a'], []));
 const client = { from: table => {
   assert.equal(table, 'event_records');
   let start = 0, end = 0;
-  const q = { select: () => q, order: () => q,
+  const q = { select: () => q, order: () => q, returns: () => q,
     range: (a, b) => { start = a; end = b; ranges.push([a, b]); return q; },
     abortSignal: async () => fail ? { error: new Error('Offline') } : { data: pages.slice(start, end + 1) }
   };

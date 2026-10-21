@@ -1,23 +1,30 @@
 import { Player, SoccerEvent } from '../models/event.model';
+import { EventSports } from '../models/sports.model';
+import { calculateSportsStatistics } from './sports-statistics';
 
 export type StatisticsPeriod = 'month' | 'year' | 'all';
 export interface HistoricalEvent {
   id: string;
   data: SoccerEvent;
   event_rsvps: { player_id: string; player: Player }[];
+  event_sports?: { data: EventSports } | null;
+}
+
+export function selectStatisticsHistory(history: HistoricalEvent[], period: StatisticsPeriod, today = new Date()) {
+  const year = String(today.getFullYear());
+  const month = `${year}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+  return history.filter(({ data }) => /^\d{4}-\d{2}-\d{2}$/.test(data.date) &&
+    (period === 'all' || data.date.startsWith(period === 'month' ? month : `${year}-`)))
+    .sort((a, b) => a.data.date.localeCompare(b.data.date) || a.id.localeCompare(b.id));
 }
 
 export function calculateStatistics(history: HistoricalEvent[], period: StatisticsPeriod, today = new Date()) {
-  const year = String(today.getFullYear());
-  const month = `${year}-${String(today.getMonth() + 1).padStart(2, '0')}`;
   const players = new Map<string, { id: string; name: string; matches: number; dinners: number; participations: number }>();
   const months = new Map<string, { month: string; matches: number; dinners: number; players: number; diners: number }>();
   let matches = 0, dinners = 0, matchAttendances = 0, dinnerAttendances = 0;
   let pitchCents = 0, dinnerCents = 0;
-  const selected = history.filter(({ data }) => /^\d{4}-\d{2}-\d{2}$/.test(data.date) &&
-    (period === 'all' || data.date.startsWith(period === 'month' ? month : `${year}-`)));
   // Ascending order lets the most recent recorded name win across historical snapshots.
-  selected.sort((a, b) => a.data.date.localeCompare(b.data.date) || a.id.localeCompare(b.id));
+  const selected = selectStatisticsHistory(history, period, today);
   for (const row of selected) {
     const event = row.data;
     const matchClosed = ['dinner', 'completed'].includes(event.status);
@@ -55,6 +62,7 @@ export function calculateStatistics(history: HistoricalEvent[], period: Statisti
     averagePitchCost: matchAttendances ? pitchCents / 100 / matchAttendances : null,
     averageDinnerCost: dinnerAttendances ? dinnerCents / 100 / dinnerAttendances : null,
     totalDinnerCost: dinnerCents / 100,
+    sports: calculateSportsStatistics(selected),
     players: [...players.values()],
     months: [...months.values()].sort((a, b) => b.month.localeCompare(a.month))
   };

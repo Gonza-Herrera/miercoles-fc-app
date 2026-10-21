@@ -36,6 +36,7 @@ export const routes: Routes = [
   { path: 'partido/equipos',       component: TeamsViewComponent,          canActivate: [authGuard, eventGuard] },
   { path: 'partido/presentes',     component: MatchAttendanceCheckComponent, canActivate: [adminGuard, eventGuard] },
   { path: 'partido/resumen',       component: MatchSummaryComponent,       canActivate: [authGuard, eventGuard] },
+  { path: 'partido/resultados/:eventId', loadComponent: () => import('./pages/match/match-results.component').then(m => m.MatchResultsComponent), canActivate: [authGuard] },
 
   // Flujo Cena
   { path: 'cena',           redirectTo: 'cena/menu', pathMatch: 'full' },

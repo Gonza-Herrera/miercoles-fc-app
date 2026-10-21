@@ -170,6 +170,10 @@ import { AuthService } from '../../services/auth.service';
             <button class="btn btn-secondary" style="margin-bottom: 12px; width: 100%" routerLink="/admin/editar-evento">Editar evento</button>
           }
           <div class="quick-grid">
+            <button class="quick-btn" [routerLink]="['/partido/resultados', event().id]">
+              <span class="q-icon">🏆</span>
+              <span>Resultados</span>
+            </button>
             <button class="quick-btn" routerLink="/partido/confirmados">
               <span class="q-icon">👥</span>
               <span>Confirmados</span>

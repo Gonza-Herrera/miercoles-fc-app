@@ -59,6 +59,40 @@
         } @empty { <p class="subtitle">Todavía no hay presencias para esta actividad.</p> }
       </section>
       <section class="panel">
+        <h2>⚽ Estadísticas deportivas</h2>
+        @if (statistics().sports.fixtures) {
+          <p>{{ statistics().sports.fixtures }} cruces con resultado · {{ statistics().sports.goals }} goles</p>
+          <div class="personal sports-personal">
+            <h3>Tu balance</h3>
+            <p>{{ sportsMe()?.wins ?? 0 }} victorias · {{ sportsMe()?.draws ?? 0 }} empates · {{ sportsMe()?.losses ?? 0 }} derrotas</p>
+            <small>{{ sportsMe()?.goals ?? 0 }} goles · {{ sportsMe()?.assists ?? 0 }} asistencias · {{ sportsMe()?.mvps ?? 0 }} veces figura</small>
+          </div>
+          <div class="periods sports-filters" aria-label="Ranking deportivo">
+            @for (metric of sportsMetrics; track metric.value) {
+              <button [class.active]="sportsRankingBy() === metric.value" [attr.aria-pressed]="sportsRankingBy() === metric.value" (click)="sportsRankingBy.set(metric.value)">{{ metric.label }}</button>
+            }
+          </div>
+          @for (player of sportsRanking(); track player.id) {
+            <div class="ranking-row" [class.is-me]="player.id === auth.currentUser()?.id">
+              <span class="rank">{{ player.rank }}</span><span class="player-name">{{ player.name }}</span><strong>{{ player.count }}</strong>
+            </div>
+          } @empty { <p class="subtitle">Todavía no hay registros para esta métrica.</p> }
+          <h3 class="balance-heading">Balance por jugador</h3>
+          <div class="sports-table-wrap">
+            <table class="sports-table">
+              <caption>Resultados de los cruces registrados</caption>
+              <thead><tr><th scope="col">Jugador</th><th scope="col" title="Partidos jugados">PJ</th><th scope="col" title="Victorias">V</th><th scope="col" title="Empates">E</th><th scope="col" title="Derrotas">D</th></tr></thead>
+              <tbody>@for (player of sportsPlayers(); track player.id) {
+                <tr><th scope="row">{{ player.name }}</th><td>{{ player.played }}</td><td>{{ player.wins }}</td><td>{{ player.draws }}</td><td>{{ player.losses }}</td></tr>
+              }</tbody>
+            </table>
+          </div>
+          <small>Se cuenta cada cruce cargado; una fecha puede tener varios. Las figuras son elegidas por el admin. Los goles sin autor suman al marcador, pero no al ranking individual.</small>
+        } @else {
+          <p class="subtitle">Todavía no hay resultados deportivos cargados para este período. Las presencias no se consideran empates ni derrotas.</p>
+        }
+      </section>
+      <section class="panel">
         <h2>Participación por mes</h2>
         @for (month of statistics().months; track month.month) {
           <div class="month-row">
@@ -71,6 +105,16 @@
       </section>
     }
     @if (!data.loading() && !data.error()) {
+      @if (closedEvents().length) {
+        <section class="panel">
+          <h2>Resultados por fecha</h2>
+          @for (event of closedEvents(); track event.id) {
+            <a class="event-result-link" [routerLink]="['/partido/resultados', event.id]">
+              <strong>{{ event.data.title }}</strong><small>{{ event.data.date | date:'dd/MM/yyyy' }} · {{ auth.isAdmin() ? 'Ver / cargar resultados' : 'Ver resultados' }}</small>
+            </a>
+          }
+        </section>
+      }
       <p class="method-note">Se usa la fecha del evento y la asistencia real confirmada por el admin, no las inscripciones iniciales.</p>
       <button class="btn btn-secondary refresh" (click)="data.load()">Actualizar estadísticas</button>
     }

@@ -27,9 +27,9 @@ export class StatisticsService {
       const pageSize = 200;
       for (let offset = 0; ; offset += pageSize) {
         const { data, error } = await this.client.from('event_records')
-          .select('id, data, event_rsvps(player_id, player)')
+          .select('id, data, event_rsvps(player_id, player), event_sports(data)')
           .order('created_at', { ascending: true }).order('id', { ascending: true })
-          .range(offset, offset + pageSize - 1).abortSignal(controller.signal);
+          .range(offset, offset + pageSize - 1).returns<HistoricalEvent[]>().abortSignal(controller.signal);
         if (error) throw error;
         history.push(...(data ?? []) as HistoricalEvent[]);
         if ((data?.length ?? 0) < pageSize) break;
