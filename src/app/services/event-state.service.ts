@@ -233,6 +233,15 @@ export class EventStateService {
     return Object.values(att).filter(a => a.attendsDinner).length;
   });
 
+  // Before final confirmation, show the same dinner RSVPs used on Home.
+  readonly dinnerAttendeeIds = computed(() => {
+    const event = this.currentEvent();
+    if (this.dinnerClosed() || event.dinnerAttendedPlayerIds.length) {
+      return event.dinnerAttendedPlayerIds;
+    }
+    return Object.values(event.attendances).filter(a => a.attendsDinner).map(a => a.playerId);
+  });
+
   readonly expectedSoccerPlayers = 10;
   readonly estimatedSoccerCostPerPlayer = computed(() =>
     Math.round(this.currentEvent().pitchPrice / this.expectedSoccerPlayers)
@@ -261,7 +270,7 @@ export class EventStateService {
   });
 
   readonly dinnerPreviewAttendeeCount = computed(() =>
-    this.currentEvent().dinnerAttendedPlayerIds.length || this.dinnerConfirmedCount()
+    this.dinnerAttendeeIds().length
   );
 
   readonly dinnerPreviewCostPerPerson = computed(() => {

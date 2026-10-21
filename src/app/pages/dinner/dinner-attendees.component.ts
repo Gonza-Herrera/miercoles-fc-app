@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
@@ -34,13 +34,13 @@ import { EventStateService } from '../../services/event-state.service';
             type="button" 
             class="tab-btn active" 
             routerLink="/cena/asistentes">
-            Asistentes ({{ state.currentEvent().dinnerAttendedPlayerIds.length }})
+            Asistentes ({{ displayedIds().length }})
           </button>
         </div>
 
         <div class="page-headline">
           <h2>Asistentes a la cena</h2>
-          <p class="subtitle">{{ auth.isAdmin() ? 'Marcá quiénes están comiendo para dividir los gastos' : 'Consultá quiénes asisten a la cena' }}</p>
+          <p class="subtitle">{{ state.dinnerClosed() ? 'Asistentes confirmados por el administrador' : auth.isAdmin() && state.currentEvent().status === 'dinner' ? 'Revisá los confirmados y ajustá quiénes están comiendo para dividir los gastos' : 'Personas que confirmaron su presencia a la cena' }}</p>
         </div>
 
         <!-- Attendees selection list -->
@@ -72,7 +72,7 @@ import { EventStateService } from '../../services/event-state.service';
       @if (auth.isAdmin() && !state.dinnerClosed()) {
       <div class="sticky-footer-action">
         <p>{{ state.currentEvent().status === 'dinner' ? 'Al confirmar, los asistentes y los gastos quedarán cerrados.' : 'Primero confirmá quienes jugaron para abrir el cierre de la cena.' }}</p>
-        <button class="btn btn-primary btn-block" [disabled]="state.saving() || !selectedIds().length || state.currentEvent().status !== 'dinner'" (click)="saveAndContinue()">
+        <button class="btn btn-primary btn-block" [disabled]="state.saving() || !displayedIds().length || state.currentEvent().status !== 'dinner'" (click)="saveAndContinue()">
           Guardar asistentes
         </button>
       </div>
@@ -218,18 +218,22 @@ export class DinnerAttendeesComponent {
   auth = inject(AuthService);
   state = inject(EventStateService);
   private router = inject(Router);
-  selectedIds = signal<string[]>([...this.state.currentEvent().dinnerAttendedPlayerIds]);
+  selectedIds = signal<string[] | null>(null);
+  displayedIds = computed(() => this.auth.isAdmin() && !this.state.dinnerClosed()
+    ? this.selectedIds() ?? this.state.dinnerAttendeeIds()
+    : this.state.dinnerAttendeeIds());
 
   allPlayers = this.state.players;
 
   isAttending(playerId: string) {
-    return (this.state.dinnerClosed() || !this.auth.isAdmin() ? this.state.currentEvent().dinnerAttendedPlayerIds : this.selectedIds()).includes(playerId);
+    return this.displayedIds().includes(playerId);
   }
 
   toggle(playerId: string) {
     if (!this.auth.isAdmin()) return;
     if (this.state.currentEvent().status !== 'dinner' || this.state.saving()) return;
-    this.selectedIds.update(ids => ids.includes(playerId) ? ids.filter(id => id !== playerId) : [...ids, playerId]);
+    const ids = this.displayedIds();
+    this.selectedIds.set(ids.includes(playerId) ? ids.filter(id => id !== playerId) : [...ids, playerId]);
   }
 
   goBack() {
@@ -238,6 +242,6 @@ export class DinnerAttendeesComponent {
 
   async saveAndContinue() {
     if (!this.auth.isAdmin()) return;
-    if (await this.state.confirmDinner(this.selectedIds())) this.router.navigate(['/cena/resumen']);
+    if (await this.state.confirmDinner(this.displayedIds())) this.router.navigate(['/cena/resumen']);
   }
 }

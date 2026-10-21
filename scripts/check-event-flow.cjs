@@ -106,6 +106,8 @@ function session(id, admin) {
   assert.equal(await player.updateMyAttendance(true, true), true);
   await admin.updateMyAttendance(true, true);
   await admin.loadEvent();
+  assert.equal(admin.dinnerAttendeeIds().length, 2, 'Dinner initially shows RSVPs without marking actual attendance');
+  assert.equal(admin.currentEvent().dinnerAttendedPlayerIds.length, 0);
   const prior = JSON.stringify(admin.currentEvent());
   network = 'offline';
   const saving = admin.updateDinnerTitle('Offline title');

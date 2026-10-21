@@ -35,7 +35,7 @@ import { EventStateService } from '../../services/event-state.service';
             type="button" 
             class="tab-btn" 
             routerLink="/cena/asistentes">
-            Asistentes ({{ state.currentEvent().dinnerAttendedPlayerIds.length }})
+            Asistentes ({{ state.dinnerAttendeeIds().length }})
           </button>
         </div>
 
