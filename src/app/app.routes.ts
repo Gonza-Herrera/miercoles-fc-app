@@ -25,6 +25,7 @@ export const routes: Routes = [
   // ── Main app (requires login) ───────────────────────────────────────────────
   { path: '', component: HomeComponent, canActivate: [authGuard] },
   { path: 'inicio', redirectTo: '', pathMatch: 'full' },
+  { path: 'estadisticas', loadComponent: () => import('./pages/statistics/statistics.component').then(m => m.StatisticsComponent), canActivate: [authGuard] },
 
   // Pantalla 2: Asistencia
   { path: 'asistencia', component: AttendanceComponent, canActivate: [authGuard, eventGuard, registrationGuard] },

@@ -1,0 +1,78 @@
+<div class="statistics-page">
+  <header class="header-bar">
+    <a routerLink="/" class="back-link" aria-label="Volver al inicio">‹</a>
+    <span class="header-title">Estadísticas</span>
+    <span class="header-icon" aria-hidden="true">📊</span>
+  </header>
+  <div class="statistics-content">
+    <h1>Nuestros miércoles</h1>
+    <p class="subtitle">Fútbol, cenas y momentos compartidos.</p>
+    <div class="periods" aria-label="Período de estadísticas">
+      @for (option of periods; track option.value) {
+        <button [class.active]="period() === option.value" [attr.aria-pressed]="period() === option.value"
+          (click)="period.set(option.value)">{{ option.label }}</button>
+      }
+    </div>
+    @if (data.loading()) {
+      <section class="panel empty" role="status">Cargando estadísticas…</section>
+    } @else if (data.error()) {
+      <section class="panel empty" role="alert">
+        <p>{{ data.error() }}</p>
+        <button class="btn btn-primary" (click)="data.load()">Reintentar</button>
+      </section>
+    } @else if (!statistics().matches && !statistics().dinners) {
+      <section class="panel empty">
+        <span class="empty-icon" aria-hidden="true">📊</span>
+        <h2>Todavía no hay estadísticas para este período</h2>
+        <p>Las presencias aparecen cuando el admin confirma quiénes jugaron y quiénes cenaron. Podés consultar otro período.</p>
+      </section>
+    } @else {
+      <div class="metrics">
+        <section class="panel metric"><span aria-hidden="true">⚽</span><strong>{{ statistics().matches }}</strong><span>Partidos jugados</span></section>
+        <section class="panel metric"><span aria-hidden="true">🍽️</span><strong>{{ statistics().dinners }}</strong><span>Cenas compartidas</span></section>
+        <section class="panel metric"><span aria-hidden="true">👥</span><strong>{{ statistics().averagePlayers === null ? '—' : (statistics().averagePlayers | number:'1.0-1') }}</strong><span>Jugadores por partido</span></section>
+        <section class="panel metric"><span aria-hidden="true">🛒</span><strong>{{ statistics().totalDinnerCost | currency:'ARS':'symbol-narrow':'1.0-2' }}</strong><span>Total gastado en cenas</span></section>
+      </div>
+      <section class="panel personal">
+        <h2>Tu participación</h2>
+        <p><strong>{{ me()?.matches ?? 0 }}</strong> partidos · <strong>{{ me()?.dinners ?? 0 }}</strong> cenas</p>
+        <small>{{ me()?.participations ?? 0 }} miércoles con al menos una presencia en el período.</small>
+      </section>
+      <section class="panel">
+        <h2>Costo promedio por persona</h2>
+        <div class="cost-row"><span>⚽ Partido</span><strong>{{ statistics().averagePitchCost === null ? 'Sin datos' : (statistics().averagePitchCost | currency:'ARS':'symbol-narrow':'1.0-2') }}</strong></div>
+        <div class="cost-row"><span>🍽️ Cena</span><strong>{{ statistics().averageDinnerCost === null ? 'Sin datos' : (statistics().averageDinnerCost | currency:'ARS':'symbol-narrow':'1.0-2') }}</strong></div>
+        <small>Gasto total dividido por las presencias reales de cada actividad. Solo incluye etapas cerradas con asistentes.</small>
+      </section>
+      <section class="panel">
+        <h2>🏅 Ranking de asistencia</h2>
+        <div class="periods ranking-filter">
+          <button [class.active]="rankingBy() === 'matches'" [attr.aria-pressed]="rankingBy() === 'matches'" (click)="rankingBy.set('matches')">Partidos</button>
+          <button [class.active]="rankingBy() === 'dinners'" [attr.aria-pressed]="rankingBy() === 'dinners'" (click)="rankingBy.set('dinners')">Cenas</button>
+        </div>
+        @for (player of ranking(); track player.id) {
+          <div class="ranking-row" [class.is-me]="player.id === auth.currentUser()?.id">
+            <span class="rank">{{ player.rank }}</span>
+            <span class="player-name">{{ player.name }}@if (player.id === auth.currentUser()?.id) { <small>(vos)</small> }</span>
+            <strong>{{ player.count }}</strong>
+          </div>
+        } @empty { <p class="subtitle">Todavía no hay presencias para esta actividad.</p> }
+      </section>
+      <section class="panel">
+        <h2>Participación por mes</h2>
+        @for (month of statistics().months; track month.month) {
+          <div class="month-row">
+            <h3>{{ monthLabel(month.month) }}</h3>
+            <p>⚽ {{ month.matches }} partidos · {{ month.players }} presencias</p>
+            <p>🍽️ {{ month.dinners }} cenas · {{ month.diners }} presencias</p>
+          </div>
+        }
+        <small>Una persona puede sumar una presencia por cada fecha y actividad.</small>
+      </section>
+    }
+    @if (!data.loading() && !data.error()) {
+      <p class="method-note">Se usa la fecha del evento y la asistencia real confirmada por el admin, no las inscripciones iniciales.</p>
+      <button class="btn btn-secondary refresh" (click)="data.load()">Actualizar estadísticas</button>
+    }
+  </div>
+</div>

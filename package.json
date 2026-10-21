@@ -7,7 +7,8 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "test:flow": "node scripts/check-event-flow.cjs"
+    "test:flow": "node scripts/check-event-flow.cjs",
+    "test:statistics": "node scripts/check-statistics.cjs"
   },
   "prettier": {
     "printWidth": 100,

@@ -200,6 +200,9 @@ import { AuthService } from '../../services/auth.service';
 
       </div>
       }
+      <div class="statistics-entry">
+        <a class="btn btn-secondary" routerLink="/estadisticas">📊 Ver estadísticas</a>
+      </div>
     </div>
 
     <!-- ── Profile bottom sheet ──────────────────────────────────────── -->
@@ -247,6 +250,8 @@ import { AuthService } from '../../services/auth.service';
     }
   `,
   styles: [`
+    .statistics-entry { padding: 16px 18px 100px; }
+    .statistics-entry a { width: 100%; text-decoration: none; }
     .empty-event {
       margin: 24px 18px;
       padding: 32px 22px;
