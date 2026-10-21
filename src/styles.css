@@ -48,7 +48,10 @@
   --radius-lg: 20px;
   --radius-full: 9999px;
 
-  --bottom-nav-height: 68px;
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --bottom-nav-content-height: 68px;
+  --bottom-nav-height: calc(var(--bottom-nav-content-height) + var(--safe-area-bottom));
   --header-height: 56px;
 }
 
@@ -79,7 +82,28 @@ body {
   position: relative;
   display: flex;
   flex-direction: column;
+  padding-top: var(--safe-area-top);
   box-shadow: 0 0 50px rgba(0, 0, 0, 0.4);
+}
+
+/* Installed iOS apps draw beneath the status bar with black-translucent.
+   Reserve that area on every route and keep scrolling content out of it. */
+.app-viewport::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
+  height: var(--safe-area-top);
+  background: #1E1B4B;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.app-viewport.has-bottom-nav {
+  padding-bottom: var(--safe-area-bottom);
 }
 
 /* Navigation Bars */
@@ -90,7 +114,7 @@ body {
   justify-content: space-between;
   padding: 0 18px;
   position: sticky;
-  top: 0;
+  top: var(--safe-area-top);
   z-index: 40;
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(12px);
@@ -101,7 +125,7 @@ body {
   background: transparent;
   border-bottom: none;
   position: absolute;
-  top: 0;
+  top: var(--safe-area-top);
   left: 0;
   right: 0;
 }
@@ -217,7 +241,10 @@ body {
   align-items: center;
   justify-content: space-around;
   z-index: 50;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  /* The iOS home-indicator inset is additional space, not part of the tabs. */
+  padding-bottom: var(--safe-area-bottom);
+  box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .nav-item {
@@ -233,6 +260,7 @@ body {
   cursor: pointer;
   width: 25%;
   height: 100%;
+  flex-shrink: 0;
   transition: color 0.15s ease;
 }
 
@@ -243,6 +271,7 @@ body {
 .nav-item svg {
   width: 22px;
   height: 22px;
+  flex-shrink: 0;
   transition: transform 0.15s ease;
 }
 

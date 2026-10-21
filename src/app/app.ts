@@ -13,7 +13,7 @@ const HIDDEN_NAV_ROUTES = ['/login', '/auth/callback'];
   imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive],
   template: `
     <!-- Mobile-first centered viewport -->
-    <main class="app-viewport">
+    <main class="app-viewport" [class.has-bottom-nav]="showBottomNav()">
       
       <!-- Dynamic Content from Router -->
       <router-outlet></router-outlet>
@@ -99,7 +99,7 @@ const HIDDEN_NAV_ROUTES = ['/login', '/auth/callback'];
   `,
   styles: [`
     .save-overlay { position: fixed; inset: 0; z-index: 2000; display: grid; place-items: center; background: rgba(255,255,255,.8); color: var(--primary); font-weight: 700; }
-    .save-feedback { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); width: calc(100% - 32px); max-width: 448px; padding: 14px; border: 1px solid #A7F3D0; border-radius: 12px; background: #ECFDF5; color: #065F46; z-index: 1999; box-shadow: 0 4px 20px #0002; }
+    .save-feedback { position: fixed; bottom: calc(var(--bottom-nav-height) + 12px); left: 50%; transform: translateX(-50%); width: calc(100% - 32px); max-width: 448px; padding: 14px; border: 1px solid #A7F3D0; border-radius: 12px; background: #ECFDF5; color: #065F46; z-index: 1999; box-shadow: 0 4px 20px #0002; }
     .save-feedback button { padding: 8px; border: none; border-radius: 8px; margin: 4px; cursor: pointer; }
     .save-error { background: #FFF1F2; color: #9F1239; border-color: #FECDD3; }
 
