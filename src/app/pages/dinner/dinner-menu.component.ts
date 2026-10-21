@@ -175,7 +175,7 @@ import { EventStateService } from '../../services/event-state.service';
             <div class="form-row">
               <input 
                 type="number" 
-                placeholder="Monto $" 
+                placeholder="Precio $" 
                 [(ngModel)]="newItemAmount" 
                 class="form-input" />
             </div>
