@@ -1,0 +1,12 @@
+[build]
+  command = "npm run build"
+  publish = "dist/miercoles-fc-app/browser"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Serve Angular routes, including the authentication callback, through the SPA.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
