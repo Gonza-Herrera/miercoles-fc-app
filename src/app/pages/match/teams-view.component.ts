@@ -544,84 +544,31 @@ export class TeamsViewComponent {
     return team.playerIds.map(id => this.state.getPlayer(id));
   });
 
-  /**
-   * Posicionamiento táctico realista según la cantidad de jugadores en el equipo:
-   * Cancha:
-   * - Eje Y: 0% (Arco Rival / Ataque) a 100% (Arco Propio / Defendido).
-   * - Eje X: 0% (Banda Izquierda) a 100% (Banda Derecha), 50% Centro.
-   *
-   * Arquero: se sitúa en y = 88% (bien adentro de su área, en la línea de gol).
-   * Defensores: se ubican en y = 68% - 70% (área grande y salida de fondo).
-   * Mediocampistas: se ubican en y = 42% - 46% (zona de medio campo).
-   * Delanteros: se ubican en y = 16% - 20% (área rival).
-   */
+  /** Draw each player in their assigned role, regardless of roster order or team size. */
   positionedPlayers = computed(() => {
-    const list = [...this.teamPlayers()];
-    const count = list.length;
-    if (count === 0) return [];
+    const players = this.teamPlayers();
+    const lines: Array<{ role: NonNullable<Player['role']>; y: number }> = [
+      { role: 'ARQ', y: 88 },
+      { role: 'DEF', y: 68 },
+      { role: 'MED', y: 44 },
+      { role: 'DEL', y: 18 }
+    ];
+    const result: Array<{ player: Player; role: NonNullable<Player['role']>; x: number; y: number }> = [];
 
-    // Priorizar como arquero al jugador con rol 'ARQ' si existe, o el último de la lista
-    const gkIndex = list.findIndex(p => p.role === 'ARQ');
-    const goalkeeper = gkIndex !== -1 ? list.splice(gkIndex, 1)[0] : list.pop()!;
-
-    // Jugadores de campo restantes
-    const fieldPlayers = list;
-    const result: Array<{ player: Player; role: 'ARQ' | 'DEF' | 'MED' | 'DEL'; x: number; y: number }> = [];
-
-    // Posición del Arquero SIEMPRE en su arco propio (y = 88%)
-    result.push({
-      player: goalkeeper,
-      role: 'ARQ',
-      x: 50,
-      y: 88
-    });
-
-    if (count === 4) {
-      // 3 de campo: 1 DEL, 1 MED, 1 DEF
-      if (fieldPlayers[0]) result.push({ player: fieldPlayers[0], role: 'DEL', x: 50, y: 18 });
-      if (fieldPlayers[1]) result.push({ player: fieldPlayers[1], role: 'MED', x: 50, y: 44 });
-      if (fieldPlayers[2]) result.push({ player: fieldPlayers[2], role: 'DEF', x: 50, y: 68 });
-
-    } else if (count === 5) {
-      // 4 de campo: 1 DEL, 2 MED, 1 DEF (Formación clásica 1-2-1)
-      if (fieldPlayers[0]) result.push({ player: fieldPlayers[0], role: 'DEL', x: 50, y: 18 });
-      if (fieldPlayers[1]) result.push({ player: fieldPlayers[1], role: 'MED', x: 28, y: 42 });
-      if (fieldPlayers[2]) result.push({ player: fieldPlayers[2], role: 'MED', x: 72, y: 42 });
-      if (fieldPlayers[3]) result.push({ player: fieldPlayers[3], role: 'DEF', x: 50, y: 68 });
-
-    } else if (count === 6) {
-      // 5 de campo: 1 DEL, 2 MED, 2 DEF (Formación sólida 2-2-1)
-      if (fieldPlayers[0]) result.push({ player: fieldPlayers[0], role: 'DEL', x: 50, y: 18 });
-      if (fieldPlayers[1]) result.push({ player: fieldPlayers[1], role: 'MED', x: 28, y: 40 });
-      if (fieldPlayers[2]) result.push({ player: fieldPlayers[2], role: 'MED', x: 72, y: 40 });
-      if (fieldPlayers[3]) result.push({ player: fieldPlayers[3], role: 'DEF', x: 30, y: 66 });
-      if (fieldPlayers[4]) result.push({ player: fieldPlayers[4], role: 'DEF', x: 70, y: 66 });
-
-    } else if (count === 7) {
-      // 6 de campo: 2 DEL, 2 MED, 2 DEF
-      if (fieldPlayers[0]) result.push({ player: fieldPlayers[0], role: 'DEL', x: 35, y: 18 });
-      if (fieldPlayers[1]) result.push({ player: fieldPlayers[1], role: 'DEL', x: 65, y: 18 });
-      if (fieldPlayers[2]) result.push({ player: fieldPlayers[2], role: 'MED', x: 28, y: 42 });
-      if (fieldPlayers[3]) result.push({ player: fieldPlayers[3], role: 'MED', x: 72, y: 42 });
-      if (fieldPlayers[4]) result.push({ player: fieldPlayers[4], role: 'DEF', x: 30, y: 66 });
-      if (fieldPlayers[5]) result.push({ player: fieldPlayers[5], role: 'DEF', x: 70, y: 66 });
-
-    } else {
-      // Distribución genérica para > 7 jugadores
-      const totalField = fieldPlayers.length;
-      fieldPlayers.forEach((p, idx) => {
-        const ratio = (idx + 1) / (totalField + 1);
-        const y = 18 + ratio * 50;
-        const x = (idx % 2 === 0) ? 32 + ((idx * 17) % 36) : 68 - ((idx * 13) % 36);
-        result.push({
-          player: p,
-          role: y < 30 ? 'DEL' : (y < 55 ? 'MED' : 'DEF'),
-          x,
-          y
+    for (const line of lines) {
+      const group = players.filter(player => (player.role ?? 'MED') === line.role);
+      const rowCount = Math.ceil(group.length / 3);
+      for (let row = 0; row < rowCount; row++) {
+        const rowPlayers = group.slice(row * 3, row * 3 + 3);
+        const spacing = rowCount > 1 ? Math.min(12, 16 / (rowCount - 1)) : 0;
+        const y = line.y + (row - (rowCount - 1) / 2) * spacing;
+        rowPlayers.forEach((player, index) => {
+          const x = rowPlayers.length === 1 ? 50 :
+            rowPlayers.length === 2 ? 28 + index * 44 : 20 + index * 30;
+          result.push({ player, role: line.role, x, y });
         });
-      });
+      }
     }
-
     return result;
   });
 
