@@ -744,7 +744,7 @@ export class DinnerMenuComponent {
 
   showAddForm = signal<boolean>(false);
   newItemName = '';
-  newItemAmount = 0;
+  newItemAmount: number | null = null;
   newItemBuyerId: string | undefined = undefined;
 
   currentShopper = computed(() => {
@@ -791,10 +791,10 @@ export class DinnerMenuComponent {
 
   async confirmAddItem() {
     if (!this.state.canEditDinner()) return;
-    if (!this.newItemName.trim() || !Number.isFinite(this.newItemAmount) || this.newItemAmount <= 0) return;
+    if (!this.newItemName.trim() || this.newItemAmount === null || !Number.isFinite(this.newItemAmount) || this.newItemAmount <= 0) return;
     if (!await this.state.addMenuItem(this.newItemName, this.newItemAmount, getDinnerItemIcon(this.newItemName), this.newItemBuyerId)) return;
     this.newItemName = '';
-    this.newItemAmount = 0;
+    this.newItemAmount = null;
     this.newItemBuyerId = undefined;
     this.showAddForm.set(false);
   }
