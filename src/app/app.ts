@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterOutlet, RouterLink, RouterLinkActive, NavigationEnd } from '@angular/router';
 import { EventStateService } from './services/event-state.service';
@@ -20,7 +20,7 @@ const HIDDEN_NAV_ROUTES = ['/login', '/auth/callback'];
       @if (showBottomNav() && state.saving()) {
         <div class="save-overlay" role="status" aria-live="polite">Guardando cambios…</div>
       }
-      @if (showBottomNav() && state.error()) {
+      @if (showBottomNav() && feedbackVisible() && state.error()) {
         <div class="save-feedback save-error" role="alert">
           <p>{{ state.error() }}</p>
           @if (state.canRetry()) {
@@ -28,10 +28,9 @@ const HIDDEN_NAV_ROUTES = ['/login', '/auth/callback'];
           }
           <button (click)="state.refreshAfterError()" [disabled]="state.saving()">Actualizar datos</button>
         </div>
-      } @else if (showBottomNav() && state.notice()) {
+      } @else if (showBottomNav() && feedbackVisible() && state.notice()) {
         <div class="save-feedback" role="status">
           <span>{{ state.notice() }}</span>
-          <button (click)="state.dismissNotice()" aria-label="Cerrar aviso">✕</button>
         </div>
       }
 
@@ -119,8 +118,20 @@ export class App {
 
   /** True when the bottom nav should be visible */
   showBottomNav = signal(true);
+  readonly feedbackVisible = signal(false);
 
   constructor() {
+    effect(onCleanup => {
+      const error = this.state.error();
+      const notice = this.state.notice();
+      const saving = this.state.saving();
+      this.feedbackVisible.set(!saving && !!(error || notice));
+      if (!saving && (error || notice)) {
+        const timer = setTimeout(() => this.feedbackVisible.set(false), 3000);
+        onCleanup(() => clearTimeout(timer));
+      }
+    });
+
     this.router.events
       .pipe(filter(e => e instanceof NavigationEnd))
       .subscribe((e: NavigationEnd) => {
