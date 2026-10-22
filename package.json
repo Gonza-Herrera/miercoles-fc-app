@@ -10,7 +10,8 @@
     "test:flow": "node scripts/check-event-flow.cjs",
     "test:statistics": "node scripts/check-statistics.cjs",
     "test:sports": "node scripts/check-sports-results.cjs",
-    "test:voting": "node scripts/check-fixture-voting.cjs"
+    "test:voting": "node scripts/check-fixture-voting.cjs",
+    "test:push": "node scripts/check-push.cjs && node scripts/check-push-client.cjs"
   },
   "prettier": {
     "printWidth": 100,
@@ -50,6 +51,7 @@
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
-    "typescript": "~5.8.2"
+    "typescript": "~5.8.2",
+    "web-push": "3.6.7"
   }
 }

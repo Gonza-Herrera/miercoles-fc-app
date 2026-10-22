@@ -1,0 +1,5 @@
+project_id = "miercoles-fc-app"
+
+[functions.push-notifications]
+# The handler verifies Supabase user JWTs itself; it never accepts an unverified caller.
+verify_jwt = false
