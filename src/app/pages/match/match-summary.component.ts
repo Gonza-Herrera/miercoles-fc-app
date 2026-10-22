@@ -53,6 +53,9 @@ import { EventStateService } from '../../services/event-state.service';
 
         <!-- Secondary link -->
         <div class="text-center-link">
+          <a class="link-btn" [routerLink]="['/partido/resultados', state.currentEvent().id]">Resultados deportivos</a>
+        </div>
+        <div class="text-center-link">
           <button class="link-btn" routerLink="/partido/equipos">
             Ver equipos
           </button>

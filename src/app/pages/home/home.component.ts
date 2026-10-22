@@ -170,6 +170,10 @@ import { AuthService } from '../../services/auth.service';
             <button class="btn btn-secondary" style="margin-bottom: 12px; width: 100%" routerLink="/admin/editar-evento">Editar evento</button>
           }
           <div class="quick-grid">
+            <button class="quick-btn" [routerLink]="['/partido/resultados', event().id]">
+              <span class="q-icon">🏆</span>
+              <span>Resultados</span>
+            </button>
             <button class="quick-btn" routerLink="/partido/confirmados">
               <span class="q-icon">👥</span>
               <span>Confirmados</span>
@@ -200,6 +204,9 @@ import { AuthService } from '../../services/auth.service';
 
       </div>
       }
+      <div class="statistics-entry">
+        <a class="btn btn-secondary" routerLink="/estadisticas">📊 Ver estadísticas</a>
+      </div>
     </div>
 
     <!-- ── Profile bottom sheet ──────────────────────────────────────── -->
@@ -247,6 +254,8 @@ import { AuthService } from '../../services/auth.service';
     }
   `,
   styles: [`
+    .statistics-entry { padding: 16px 18px 100px; }
+    .statistics-entry a { width: 100%; text-decoration: none; }
     .empty-event {
       margin: 24px 18px;
       padding: 32px 22px;

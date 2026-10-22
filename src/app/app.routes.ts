@@ -25,6 +25,7 @@ export const routes: Routes = [
   // ── Main app (requires login) ───────────────────────────────────────────────
   { path: '', component: HomeComponent, canActivate: [authGuard] },
   { path: 'inicio', redirectTo: '', pathMatch: 'full' },
+  { path: 'estadisticas', loadComponent: () => import('./pages/statistics/statistics.component').then(m => m.StatisticsComponent), canActivate: [authGuard] },
 
   // Pantalla 2: Asistencia
   { path: 'asistencia', component: AttendanceComponent, canActivate: [authGuard, eventGuard, registrationGuard] },
@@ -35,6 +36,7 @@ export const routes: Routes = [
   { path: 'partido/equipos',       component: TeamsViewComponent,          canActivate: [authGuard, eventGuard] },
   { path: 'partido/presentes',     component: MatchAttendanceCheckComponent, canActivate: [adminGuard, eventGuard] },
   { path: 'partido/resumen',       component: MatchSummaryComponent,       canActivate: [authGuard, eventGuard] },
+  { path: 'partido/resultados/:eventId', loadComponent: () => import('./pages/match/match-results.component').then(m => m.MatchResultsComponent), canActivate: [authGuard] },
 
   // Flujo Cena
   { path: 'cena',           redirectTo: 'cena/menu', pathMatch: 'full' },

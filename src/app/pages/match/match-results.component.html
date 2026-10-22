@@ -1,0 +1,85 @@
+<div class="results-page">
+  <header class="header-bar">
+    <a routerLink="/estadisticas" class="back" aria-label="Volver a estadísticas">‹</a>
+    <strong>Resultados deportivos</strong><span aria-hidden="true">⚽</span>
+  </header>
+  <main>
+    @if (data.loading()) {
+      <section class="card" role="status">Cargando resultados…</section>
+    } @else if (data.event(); as event) {
+      <h1>{{ event.data.title }}</h1>
+      <p class="muted">{{ event.data.date | date:'dd/MM/yyyy' }} · {{ event.data.location }}</p>
+      @if (!['dinner', 'completed'].includes(event.data.status)) {
+        <section class="card">Los resultados estarán disponibles cuando el admin confirme quiénes jugaron.</section>
+      } @else {
+        <p class="muted">Cada cruce cuenta para los presentes de ambos equipos. Sus participantes eligen a la figura por votación.</p>
+        @for (fixture of fixtures(); track fixture.id) {
+          <section class="card">
+            <div class="score"><span>{{ teamName(fixture.homeTeamId) }}</span><strong>{{ fixture.homeScore }} – {{ fixture.awayScore }}</strong><span>{{ teamName(fixture.awayTeamId) }}</span></div>
+            @for (player of fixture.players; track player.playerId) {
+              @if (player.goals || player.assists) {
+                <div class="performance"><span>{{ playerName(player.playerId) }}</span><span>⚽ {{ player.goals }} · 👟 {{ player.assists }}</span></div>
+              }
+            }
+            <app-fixture-voting [eventId]="event.id" [fixtureId]="fixture.id" [participants]="participants(fixture)" [legacyMvp]="fixture.mvpPlayerId" />
+            @if (canEdit() && !draft && !data.canRetry() && !data.conflict()) {
+              <div class="actions">
+                <button class="btn btn-secondary" [disabled]="data.saving()" (click)="edit(fixture)">Editar</button>
+                <button class="text-danger" [disabled]="data.saving()" (click)="removalId = fixture.id">Quitar cruce</button>
+              </div>
+              @if (removalId === fixture.id) {
+                <p>¿Quitar este cruce y sus estadísticas de los rankings? Solo se permite si no recibió votos y su votación sigue abierta.</p>
+                <div class="actions"><button class="btn btn-secondary" [disabled]="data.saving()" (click)="removalId = null">Cancelar</button><button class="btn btn-primary" [disabled]="data.saving()" (click)="remove()">Confirmar</button></div>
+              }
+            }
+          </section>
+        } @empty { <section class="card"><h2>Aún no se cargaron resultados</h2><p class="muted">Las presencias ya están registradas. Los rankings deportivos aparecerán cuando se cargue un marcador.</p></section> }
+        @if (canEdit() && teams().length < 2) {
+          <section class="card">Esta fecha no tiene dos equipos guardados. No se pueden asignar resultados deportivos a equipos que no fueron registrados.</section>
+        } @else if (canEdit() && !draft && fixtures().length < 50) {
+          <button class="btn btn-primary full" [disabled]="data.saving() || data.canRetry() || data.conflict()" (click)="edit()">Agregar cruce</button>
+        }
+        @if (draft; as form) {
+          <section class="card form-card">
+            <h2>Cargar resultado</h2>
+            <fieldset [disabled]="data.saving() || data.canRetry() || data.conflict()">
+              <div class="form-row">
+                <label>Equipo 1<select [disabled]="fixtures().some(isEditingFixture)" [(ngModel)]="form.homeTeamId" (ngModelChange)="changeTeams()">@for (team of teams(); track team.id) { <option [value]="team.id">{{ team.name }}</option> }</select></label>
+                <label>Equipo 2<select [disabled]="fixtures().some(isEditingFixture)" [(ngModel)]="form.awayTeamId" (ngModelChange)="changeTeams()">@for (team of teams(); track team.id) { <option [value]="team.id">{{ team.name }}</option> }</select></label>
+              </div>
+              <div class="form-row">
+                <label>Goles equipo 1<input type="number" min="0" max="999" step="1" inputmode="numeric" placeholder="Marcador" [(ngModel)]="form.homeScore" /></label>
+                <label>Goles equipo 2<input type="number" min="0" max="999" step="1" inputmode="numeric" placeholder="Marcador" [(ngModel)]="form.awayScore" /></label>
+              </div>
+              <h3>Goles y asistencias</h3>
+              <p class="muted">Podés guardar el marcador sin asignar todos los goles: los restantes quedan sin autor, por ejemplo los goles en contra. Cada gol admite una asistencia.</p>
+              @for (player of form.players; track player.playerId) {
+                <div class="player-form">
+                  <strong>{{ playerName(player.playerId) }}</strong><small>{{ playerTeam(player.playerId) }}</small>
+                  <div class="form-row">
+                    <label>Goles<input type="number" min="0" max="999" step="1" inputmode="numeric" [(ngModel)]="player.goals" /></label>
+                    <label>Asistencias<input type="number" min="0" max="999" step="1" inputmode="numeric" [(ngModel)]="player.assists" /></label>
+                  </div>
+                </div>
+              }
+              <p class="muted">Al guardar un cruce nuevo se abre su votación. Cada participante puede elegir a otro jugador; los equipos quedan fijos para conservar la validez de los votos.</p>
+              @if (formError) { <p class="error" role="alert">{{ formError }}</p> }
+              <div class="actions"><button class="btn btn-secondary" (click)="draft = null; formError = ''">Cancelar</button><button class="btn btn-primary" (click)="save()">Guardar resultado</button></div>
+            </fieldset>
+          </section>
+        }
+      }
+    } @else {
+      <section class="card">No pudimos abrir el evento. Probá actualizar los datos.</section>
+    }
+    @if (data.saving()) { <p role="status">Guardando resultados…</p> }
+    @if (data.canRetry()) { <button class="btn btn-primary full" [disabled]="data.saving()" (click)="retry()">Reintentar el mismo guardado</button> }
+    @if (data.conflict()) { <p class="error">Hay cambios en otra sesión. Actualizá antes de seguir editando.</p> }
+    <button class="btn btn-secondary full refresh" [disabled]="data.saving() || data.loading()" (click)="reload()">Actualizar datos</button>
+    @if (draft) { <small>Actualizar datos descarta el borrador si la consulta se completa.</small> }
+    <a routerLink="/estadisticas" class="statistics-link">Ver estadísticas deportivas</a>
+  </main>
+</div>
+@if (feedbackVisible() && (data.error() || data.notice())) {
+  <div class="feedback" [class.error-feedback]="data.error()" [attr.role]="data.error() ? 'alert' : 'status'">{{ data.error() || data.notice() }}</div>
+}

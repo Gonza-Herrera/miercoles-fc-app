@@ -103,3 +103,65 @@ antes de guardar, respuestas perdidas después de guardar, reintentos sin duplic
 conflictos entre dos sesiones, cierres, importes exactos, anulación y recarga.
 Las comprobaciones del navegador se hicieron sobre el servidor local. Esto no
 sustituye una prueba manual en dos teléfonos físicos con las cuentas del grupo.
+
+## Estadísticas deportivas
+
+Desde Inicio → Resultados o desde Estadísticas → Resultados por fecha se puede
+consultar cada fecha histórica. Después de confirmar los presentes, el admin
+puede cargar uno o varios cruces entre los equipos guardados, sus marcadores,
+goles y asistencias por jugador. Los nuevos cruces abren una votación para elegir
+la figura. Los demás usuarios tienen acceso de lectura a los resultados y pueden
+votar en los cruces que jugaron. Las correcciones siguen disponibles
+después de cerrar la cena, sin modificar asistencias, gastos ni pagos.
+
+Las victorias, empates y derrotas se asignan a los presentes de ambos equipos
+por cada cruce. La asistencia general sigue contando fechas, no cruces. Los
+resultados no cargados no se consideran empates. El total de goles puede superar
+los goles con autor (por ejemplo por goles en contra); esos goles no se asignan
+a jugadores. Los goles y asistencias de cada equipo no pueden superar su marcador.
+No se permite que un jugador asista sus propios goles.
+
+La tabla `event_sports`, sus políticas de lectura/admin, validaciones y RPC están
+en `database/sports-results.sql` (aplicado al proyecto Supabase actual). Para otro
+entorno, ejecutar este esquema después de los esquemas de eventos y cierres.
+El RPC usa versiones y operaciones idempotentes para evitar sobrescrituras y
+duplicados al reintentar. `updated_by` y `updated_at` registran la última edición.
+
+```bash
+npm run test:statistics
+npm run test:sports
+npm run test:flow
+npm run build
+```
+
+`database/tests/sports-results.sql` verifica RPC, triggers, conflictos y permisos
+con roles reales. Todos sus cambios de prueba se revierten con `ROLLBACK`.
+
+## Votación del jugador del partido
+
+En Resultados, cada participante real del cruce puede votar a otro participante
+de cualquiera de los dos equipos. Un usuario tiene un voto por cruce y puede
+cambiarlo mientras la votación siga abierta. La base de datos valida la identidad,
+el padrón de presentes y la prohibición de votarse a sí mismo. Ni el admin puede
+leer votos ajenos: `fixture_votes` solo permite consultar el voto propio.
+
+El admin confirma el cierre definitivo. Hasta entonces no se publican recuentos
+ni figuras. El cierre guarda el total y todos los ganadores empatados en
+`fixture_polls`; cada uno suma una figura al ranking. Si no hay votos, nadie suma.
+Las figuras anteriores elegidas por el admin se conservan como elecciones históricas.
+Los equipos de un cruce nuevo quedan fijos al abrir su votación. No se puede quitar
+un cruce con votos o con una votación cerrada. Corregir marcadores conserva los votos.
+
+El esquema adicional está en `database/fixture-voting.sql`, aplicado después de
+`database/sports-results.sql`. Las tablas no admiten escrituras directas del cliente;
+los RPC públicos llaman implementaciones con validación de identidad en el esquema
+no expuesto `app_private`. Mantener ese esquema fuera de los esquemas de Data API.
+Los envíos usan versiones y operaciones idempotentes. El componente actualiza la
+votación cada 15 segundos, al volver a la ventana o mediante Actualizar votación.
+
+```bash
+npm run test:voting
+```
+
+`database/tests/fixture-voting.sql` prueba permisos, privacidad, cambios, conflictos,
+empates, cierre y ausencia de votos con roles reales, y termina con `ROLLBACK`.
