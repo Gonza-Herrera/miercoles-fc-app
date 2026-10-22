@@ -1,5 +1,7 @@
 -- Existing identities, all profile/storage metadata changes rolled back.
 begin;
+-- Authorize fixture identities for this isolated transaction only; ROLLBACK restores access.
+update public.group_invites set active=true;
 select set_config('test.profile_a',id::text,true) from auth.users order by created_at,id limit 1;
 select set_config('test.profile_b',id::text,true) from auth.users order by created_at,id offset 1 limit 1;
 set local role authenticated;

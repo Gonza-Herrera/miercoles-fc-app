@@ -1,5 +1,7 @@
 -- Integration test with existing identities, isolated event and full rollback.
 begin;
+-- Authorize fixture identities for this isolated transaction only; ROLLBACK restores access.
+update public.group_invites set active=true;
 select set_config('test.people',(select jsonb_agg(to_jsonb(u))::text from (select id,email from auth.users order by (email='gon.herrera.dev@gmail.com') desc,created_at,id limit 10) u),true);
 set local role authenticated;
 do $$

@@ -36,6 +36,7 @@ declare
  n int; first_size int; second_size int; next_id text; candidates text[]; previous_ids text[];
  chosen text; roles jsonb; changed jsonb; new_team jsonb;
 begin
+ if not app_private.is_group_member() then raise exception 'Esta cuenta no tiene acceso.' using errcode='42501'; end if;
  if actor is null then raise exception 'Iniciá sesión.' using errcode='42501'; end if;
  if p_operation is null or p_version is null or p_payload is null then raise exception 'Solicitud incompleta.'; end if;
  select * into e from public.event_records where id=p_event for update;

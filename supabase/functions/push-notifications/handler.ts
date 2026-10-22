@@ -40,7 +40,9 @@ export function createPushHandler(client: any, webPush: any, sendFetch: typeof f
       let status = 'failed';
       const sub = await client.from('push_subscriptions').select('*').eq('id', delivery.subscription_id).eq('user_id', delivery.user_id).maybeSingle();
       if (sub.error) throw sub.error;
-      if (!sub.data || !validSubscription(sub.data)) status = 'expired';
+      const membership = await client.rpc('group_member_for_user', { p_user: delivery.user_id });
+      if (membership.error) throw membership.error;
+      if (!membership.data || !sub.data || !validSubscription(sub.data)) status = 'expired';
       else {
         let request;
         try {
@@ -100,6 +102,11 @@ export function createPushHandler(client: any, webPush: any, sendFetch: typeof f
       if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error();
     } catch { return reply({ error: 'Solicitud inválida.' }, 400); }
     try {
+      if (input.action !== 'unsubscribe') {
+        const membership = await client.rpc('group_member_for_user', { p_user: user.id });
+        if (membership.error) throw membership.error;
+        if (!membership.data) return reply({ error: 'Esta cuenta no tiene acceso. Contactá al administrador.' }, 403);
+      }
       if (input.action === 'config') {
         const pair = await keys(admin);
         let devices: number | null = null;

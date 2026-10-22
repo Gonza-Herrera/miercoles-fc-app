@@ -1,7 +1,8 @@
-import { Injectable, inject, signal, computed } from '@angular/core';
+import { Injectable, inject, signal, computed, effect, untracked } from '@angular/core';
 import { Router } from '@angular/router';
 import { Session, User, AuthError } from '@supabase/supabase-js';
 import { SupabaseService } from './supabase.service';
+import { GroupAccessService } from './group-access.service';
 import { ProfileService } from './profile.service';
 import { PushNotificationsService } from './push-notifications.service';
 
@@ -20,6 +21,7 @@ export interface AppUser {
 export class AuthService {
   private sb = inject(SupabaseService).client;
   private router = inject(Router);
+  readonly access = inject(GroupAccessService);
   private profiles = inject(ProfileService);
   private push = inject(PushNotificationsService);
 
@@ -34,16 +36,32 @@ export class AuthService {
   /** Derived AppUser from the current session */
   readonly currentUser = computed<AppUser | null>(() => {
     const s = this.session();
-    if (!s?.user) return null;
+    if (!s?.user || this.access.status() !== 'allowed') return null;
     return this.mapUser(s.user);
   });
 
-  readonly isLoggedIn  = computed(() => !!this.session());
+  readonly hasSession = computed(() => !!this.session());
+  readonly isLoggedIn = computed(() => !!this.session() && this.access.status() === 'allowed');
   readonly isAdmin     = computed(() => this.currentUser()?.isAdmin ?? false);
 
   // ─── Bootstrap ─────────────────────────────────────────────────────────────
 
   constructor() {
+    effect(() => {
+      const status = this.access.status();
+      const session = this.session();
+      untracked(() => {
+        if (!session) { this.profiles.activate(''); return; }
+        if (status === 'allowed') {
+          this.profiles.activate(session.user.id);
+          void this.profiles.load();
+          if (['/login','/acceso-restringido'].includes(this.router.url.split('?')[0])) void this.router.navigate(['/']);
+        } else if (status === 'denied' || status === 'error') {
+          this.profiles.activate('');
+          if (!['/login','/auth/callback','/acceso-restringido'].includes(this.router.url.split('?')[0])) void this.router.navigate(['/acceso-restringido']);
+        }
+      });
+    });
     // 1. Restore session from localStorage on boot
     this.sb.auth.getSession().then(({ data }) => {
       this.acceptSession(data.session);
@@ -58,10 +76,11 @@ export class AuthService {
   }
 
   private acceptSession(session: Session | null) {
-    this.profiles.activate(session?.user.id ?? '');
+    this.access.activate(session?.user.id ?? '');
+    if (!session) this.profiles.activate('');
     this.session.set(session);
     // Do not await a Supabase query inside onAuthStateChange's auth lock.
-    if (session) setTimeout(() => { void this.profiles.load(); }, 0);
+    if (session) setTimeout(() => { void this.access.check(); }, 0);
   }
 
   // ─── Auth methods ───────────────────────────────────────────────────────────
@@ -71,12 +90,13 @@ export class AuthService {
    * Supabase will redirect back to /auth/callback after login.
    */
   async signInWithGoogle(): Promise<void> {
-    await this.sb.auth.signInWithOAuth({
+    const { error } = await this.sb.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
+    if (error) throw error;
   }
 
   /**
@@ -90,7 +110,7 @@ export class AuthService {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
-    return error ? error.message : null;
+    return error ? 'No pudimos enviar el enlace. Verificá que el administrador haya autorizado este correo e intentá nuevamente.' : null;
   }
 
   /** Sign out and go back to /login */

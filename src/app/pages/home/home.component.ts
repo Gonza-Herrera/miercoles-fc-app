@@ -242,6 +242,7 @@ import { AuthService } from '../../services/auth.service';
         @if (auth.isAdmin()) {
           <button class="sheet-action sheet-action-primary" routerLink="/admin/nuevo-evento" (click)="closeProfile()">📅 Crear evento</button>
         }
+        @if (auth.isAdmin()) { <button class="sheet-action sheet-action-primary" routerLink="/admin/acceso" (click)="closeProfile()">🔐 Administrar acceso</button> }
         <button class="sheet-action sheet-action-primary" routerLink="/mi-perfil" (click)="closeProfile()">👤 Mi perfil</button>
         <button class="sheet-action sheet-action-primary" routerLink="/notificaciones" (click)="closeProfile()">🔔 Notificaciones</button>
         @if (auth.isAdmin() && state.hasEvent() && !state.dinnerClosed()) {

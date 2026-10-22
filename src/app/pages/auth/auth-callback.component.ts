@@ -55,12 +55,17 @@ export class AuthCallbackComponent implements OnInit {
     // onAuthStateChange in AuthService will update the session signal automatically.
     // We poll briefly then redirect.
     await this.waitForSession();
+    if (this.auth.hasSession() && !await this.auth.access.check()) {
+      await this.router.navigate(['/acceso-restringido'], { replaceUrl: true }); return;
+    }
     const user = this.auth.currentUser();
     if (user) {
       this.router.navigate(['/'], { replaceUrl: true });
     } else {
       // Session exchange failed — back to login
-      this.router.navigate(['/login'], { replaceUrl: true });
+      const url = new URL(window.location.href);
+      const error = url.searchParams.has('error') || new URLSearchParams(url.hash.slice(1)).has('error');
+      this.router.navigate([error ? '/acceso-restringido' : '/login'], { replaceUrl: true });
     }
   }
 

@@ -56,7 +56,7 @@ const {ProfileService,profileNameError}=load('src/app/services/profile.service.t
  const session={user:{id:'a',email:'player@example.test',user_metadata:{full_name:'Google original',avatar_url:'google.jpg'}}};
  let onChange;
  client.auth.getSession=async()=>({data:{session}});client.auth.onAuthStateChange=cb=>{onChange=cb;};
- const {AuthService}=load('src/app/services/auth.service.ts',{'@angular/core':{Injectable:()=>c=>c,signal,computed:fn=>fn,inject:token=>token==='profiles'?service:token==='supabase'?{client}:{}},'./profile.service':{ProfileService:'profiles'},'./supabase.service':{SupabaseService:'supabase'},'./push-notifications.service':{PushNotificationsService:'push'},'@angular/router':{Router:'router'}});
+ const {AuthService}=load('src/app/services/auth.service.ts',{'@angular/core':{Injectable:()=>c=>c,signal,computed:fn=>fn,effect:()=>{},untracked:fn=>fn(),inject:token=>token==='access'?{status:()=> 'allowed',activate:()=>{},check:async()=>true}:token==='profiles'?service:token==='supabase'?{client}:{}},'./group-access.service':{GroupAccessService:'access'},'./profile.service':{ProfileService:'profiles'},'./supabase.service':{SupabaseService:'supabase'},'./push-notifications.service':{PushNotificationsService:'push'},'@angular/router':{Router:'router'}});
  const auth=new AuthService();await Promise.resolve();await service.load();
  assert.equal(auth.currentUser().name,'Nombre reciente');assert.equal(auth.currentUser().isAdmin,false);
  onChange('SIGNED_IN',{user:{...session.user,user_metadata:{full_name:'Otro nombre de Google'}}});

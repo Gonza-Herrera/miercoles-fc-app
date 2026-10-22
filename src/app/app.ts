@@ -5,7 +5,7 @@ import { EventStateService } from './services/event-state.service';
 import { filter } from 'rxjs/operators';
 
 /** Routes where the bottom navigation should NOT be shown */
-const HIDDEN_NAV_ROUTES = ['/login', '/auth/callback'];
+const HIDDEN_NAV_ROUTES = ['/login', '/auth/callback', '/acceso-restringido'];
 
 @Component({
   selector: 'app-root',

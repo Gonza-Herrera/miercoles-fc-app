@@ -98,7 +98,7 @@ begin
    return next job; return;
  end if;
  insert into public.push_jobs(id,created_by,title,body,path) values(p_id,p_actor,p_title,p_body,p_path);
- insert into public.push_deliveries(job_id,subscription_id,user_id) select p_id,id,user_id from public.push_subscriptions;
+ insert into public.push_deliveries(job_id,subscription_id,user_id) select p_id,s.id,s.user_id from public.push_subscriptions s where app_private.group_member_for_user(s.user_id);
  update public.push_jobs set total=(select count(*) from public.push_deliveries where job_id=p_id),remaining=(select count(*) from public.push_deliveries where job_id=p_id) where id=p_id returning * into job;
  return next job;
 end $$;

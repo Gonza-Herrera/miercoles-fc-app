@@ -13,7 +13,8 @@
     "test:voting": "node scripts/check-fixture-voting.cjs",
     "test:push": "node scripts/check-push.cjs && node scripts/check-push-client.cjs",
     "test:captains": "node scripts/check-captain-draft.cjs",
-    "test:profiles": "node scripts/check-profiles.cjs"
+    "test:profiles": "node scripts/check-profiles.cjs",
+    "test:access": "node scripts/check-group-access.cjs"
   },
   "prettier": {
     "printWidth": 100,

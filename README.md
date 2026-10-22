@@ -294,3 +294,60 @@ y revierte sus escrituras con `ROLLBACK`.
 ```bash
 npm run test:profiles
 ```
+
+## Acceso exclusivo por invitación
+
+El administrador abre **Inicio → avatar → Administrar acceso** para agregar un
+nombre de referencia y el correo exacto que usará su amigo con Google o Magic
+Link. Agregar un correo lo autoriza, pero **no envía emails**: se puede compartir
+el enlace de la app por WhatsApp. La lista permite buscar, autorizar y desactivar
+accesos y consultar el primer ingreso autorizado.
+
+Al aplicar `database/group-access.sql`, las cuentas que ya existían se importan
+como **pendientes de aprobación**, excepto `gon.herrera.dev@gmail.com`, que conserva
+el acceso administrativo y no puede desactivarse desde la app. Antes de que los
+amigos vuelvan a ingresar, el administrador debe revisar y autorizar sus correos.
+No se eliminan cuentas, asistencias, equipos, votos ni movimientos de pago.
+
+La comprobación usa el correo verificado de `auth.users` y una invitación activa,
+no el nombre del perfil ni metadatos editables ni un correo obsoleto en el JWT.
+Las políticas restrictivas protegen todas las tablas de la app y las operaciones
+de Storage. Las RPC con privilegios para capitanes y votaciones verifican la
+misma membresía. El servidor bloquea nuevas solicitudes tras una desactivación;
+la interfaz lo detecta cada 15 segundos, al enfocar la app o al navegar.
+Los datos ya descargados y las notificaciones ya entregadas no se pueden retirar.
+Las fotos continúan usando el bucket público de perfil existente.
+
+La creación de cuentas se restringe mediante el trigger
+`require_group_invitation` de `auth.users`. Esta variante aplica la regla en el
+servidor sin depender de activar un Auth Hook en el dashboard. Supabase puede
+responder con un error genérico al rechazar un alta; la pantalla de ingreso
+explica que la app requiere invitación y el callback deriva los errores a la
+pantalla de acceso restringido. Una cuenta existente no autorizada puede completar
+la autenticación, pero no puede leer datos ni realizar acciones.
+
+Los envíos push comprueban membresía con una RPC exclusiva de `service_role`,
+filtran destinatarios al crear el envío y vuelven a comprobar antes de cada
+entrega. Se permite cancelar la suscripción propia incluso sin membresía.
+
+`database/group-access.sql` y la versión actualizada de la Edge Function
+`push-notifications` están aplicados al proyecto actual. Para otro proyecto,
+aplicar este esquema **después** de los esquemas de eventos, pagos, resultados,
+votación, capitanes, notificaciones y perfiles. No ejecutar nuevamente el archivo
+como si fuera una migración pendiente en el proyecto actual.
+
+```bash
+npm run test:access
+npm run test:push
+```
+
+`database/tests/group-access.sql` verifica permisos reales, rechazo de altas sin
+invitación, verificación de correo, autorización, primer ingreso, revocación con
+el mismo token, aislamiento del admin, control de versiones y reintentos. Todas
+las escrituras de prueba, incluidas las cuentas sintéticas, se revierten con
+`ROLLBACK`. Las otras pruebas SQL autorizan sus identidades de prueba solamente
+dentro de su transacción y restauran el estado original al terminar.
+
+Publicar el frontend mediante commit/push a Netlify es necesario para mostrar la
+nueva pantalla. La protección del servidor ya funciona aunque quede desplegada
+una versión anterior de la interfaz.

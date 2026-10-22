@@ -1,5 +1,7 @@
 -- Integration checks use real RLS/RPC/trigger code. All fixture writes roll back.
 begin;
+-- Authorize fixture identities for this isolated transaction only; ROLLBACK restores access.
+update public.group_invites set active=true;
 select set_config('test.admin_claims',jsonb_build_object('sub',id,'email',email,'role','authenticated')::text,true) from auth.users where email='gon.herrera.dev@gmail.com';
 select set_config('test.player_claims',jsonb_build_object('sub',id,'email',email,'role','authenticated')::text,true),set_config('test.player_id',id::text,true) from auth.users where email <> 'gon.herrera.dev@gmail.com' order by created_at limit 1;
 select set_config('request.jwt.claims',current_setting('test.admin_claims'),true);

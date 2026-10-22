@@ -20,6 +20,8 @@ import { authGuard, adminGuard, eventGuard, teamEditGuard, registrationGuard } f
 export const routes: Routes = [
   // ── Auth (public) ──────────────────────────────────────────────────────────
   { path: 'login', component: LoginComponent },
+  { path: 'acceso-restringido', loadComponent: () => import('./pages/access/access-denied.component').then(m => m.AccessDeniedComponent) },
+  { path: 'admin/acceso', loadComponent: () => import('./pages/access/invites.component').then(m => m.InvitesComponent), canActivate: [adminGuard] },
   { path: 'auth/callback', component: AuthCallbackComponent },
 
   // ── Main app (requires login) ───────────────────────────────────────────────

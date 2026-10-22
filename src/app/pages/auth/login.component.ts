@@ -39,7 +39,7 @@ import { AuthService } from '../../services/auth.service';
         <div class="welcome-block">
           <h2 class="welcome-title">¡Bienvenido! 👋</h2>
           <p class="welcome-sub">
-            Ingresá para confirmar tu asistencia al próximo miércoles
+            Acceso exclusivo para invitados. Ingresá con el correo autorizado por el administrador.
           </p>
         </div>
 

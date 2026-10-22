@@ -14,11 +14,11 @@ export const authGuard: CanActivateFn = async () => {
   // Wait for the initial session check to complete
   await waitForInit(auth);
 
-  if (auth.isLoggedIn()) {
+  if (auth.hasSession() && await auth.access.check()) {
     return true;
   }
 
-  return router.createUrlTree(['/login']);
+  return router.createUrlTree([auth.hasSession() ? '/acceso-restringido' : '/login']);
 };
 
 /**
@@ -31,16 +31,17 @@ export const adminGuard: CanActivateFn = async () => {
 
   await waitForInit(auth);
 
-  if (auth.isAdmin()) {
+  const allowed = auth.hasSession() && await auth.access.check();
+  if (allowed && auth.isAdmin()) {
     return true;
   }
 
   // Logged in but not admin → go home
-  if (auth.isLoggedIn()) {
+  if (allowed) {
     return router.createUrlTree(['/']);
   }
 
-  return router.createUrlTree(['/login']);
+  return router.createUrlTree([auth.hasSession() ? '/acceso-restringido' : '/login']);
 };
 
 export const eventGuard: CanActivateFn = async () => {

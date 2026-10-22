@@ -26,6 +26,7 @@ const db = { push_subscriptions: [
   { id: 'three', user_id: 'c', endpoint: 'https://updates.push.services.mozilla.com/uncertain', keys: browserKeys }
 ], push_jobs: [], push_deliveries: [] };
 let authCalls = 0, sent = 0;
+const revoked = new Set();
 const client = {
   auth: { getUser: async token => { authCalls++; return token === 'admin' ? { data: { user: { id: 'admin-id', email: 'gon.herrera.dev@gmail.com' } } } : token === 'member' ? { data: { user: { id: 'a', email: 'member@example.com', user_metadata: { email: 'gon.herrera.dev@gmail.com' } } } } : { error: true, data: { user: null } }; } },
   from: table => {
@@ -46,6 +47,7 @@ const client = {
     return q;
   },
   rpc: async (name, args) => {
+    if (name === 'group_member_for_user') return { data: !revoked.has(args.p_user) };
     if (name === 'push_vapid_read') return { data: vapid };
     if (name === 'create_push_job') {
       let job = db.push_jobs.find(row => row.id === args.p_id);
@@ -103,6 +105,13 @@ const request = (body, token, origin = 'https://miercoles-fc.netlify.app') => ne
   await handler(request({ action: 'unsubscribe', endpoint: 'https://updates.push.services.mozilla.com/uncertain' }, 'member'));
   assert.equal(db.push_subscriptions.some(sub => sub.id === 'three'), true); // A member cannot remove another account's device.
 
+  revoked.add('a');
+  assert.equal((await handler(request({ action: 'config' }, 'member'))).status,403);
+  assert.equal((await handler(request({ action: 'subscribe', subscription: { endpoint:'https://web.push.apple.com/blocked',keys:browserKeys } }, 'member'))).status,403);
+  const beforeRevokedSend=sent;
+  await handler(request({...payload,id:crypto.randomUUID()},'admin'));
+  assert.equal(sent,beforeRevokedSend+1,'revoked recipient must not receive a push; only c remains eligible');
+  assert.equal(db.push_subscriptions.some(s=>s.user_id==='a'),false);
   const listeners = {}, shown = [], opened = [];
   vm.runInNewContext(fs.readFileSync('public/push-sw.js', 'utf8'), { URL, Set,
     self: { addEventListener: (type, callback) => { listeners[type] = callback; }, location: { origin: 'https://miercoles-fc.netlify.app' },

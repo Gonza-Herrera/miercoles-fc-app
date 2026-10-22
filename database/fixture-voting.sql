@@ -81,6 +81,7 @@ create function app_private.cast_fixture_vote(p_event_id uuid,p_fixture_id uuid,
 returns setof public.fixture_votes language plpgsql security definer set search_path='' as $$
 declare poll public.fixture_polls; ballot public.fixture_votes; voter uuid:=auth.uid();
 begin
+ if not app_private.is_group_member() then raise exception 'Esta cuenta no tiene acceso.' using errcode='42501'; end if;
  if voter is null then raise exception 'Iniciá sesión para votar.' using errcode='42501'; end if;
  if p_operation is null then raise exception 'Falta la identidad del voto.'; end if;
  perform pg_advisory_xact_lock(hashtextextended(p_event_id::text,0));
@@ -108,6 +109,7 @@ create function app_private.close_fixture_poll(p_event_id uuid,p_fixture_id uuid
 returns setof public.fixture_polls language plpgsql security definer set search_path='' as $$
 declare poll public.fixture_polls; winners uuid[]; votes integer;
 begin
+ if not app_private.is_group_member() then raise exception 'Esta cuenta no tiene acceso.' using errcode='42501'; end if;
  if auth.uid() is null or (auth.jwt()->>'email') is distinct from 'gon.herrera.dev@gmail.com' then raise exception 'Solo el admin puede cerrar la votación.' using errcode='42501'; end if;
  perform pg_advisory_xact_lock(hashtextextended(p_event_id::text,0));
  select * into poll from public.fixture_polls where event_id=p_event_id and fixture_id=p_fixture_id for update;
