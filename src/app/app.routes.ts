@@ -25,6 +25,7 @@ export const routes: Routes = [
   // ── Main app (requires login) ───────────────────────────────────────────────
   { path: '', component: HomeComponent, canActivate: [authGuard] },
   { path: 'inicio', redirectTo: '', pathMatch: 'full' },
+  { path: 'mi-perfil', loadComponent: () => import('./pages/profile/profile.component').then(m => m.ProfileComponent), canActivate: [authGuard] },
   { path: 'notificaciones', loadComponent: () => import('./pages/notifications/notifications.component').then(m => m.NotificationsComponent), canActivate: [authGuard] },
   { path: 'estadisticas', loadComponent: () => import('./pages/statistics/statistics.component').then(m => m.StatisticsComponent), canActivate: [authGuard] },
 

@@ -73,14 +73,15 @@ const signal = initial => {
 };
 class SupabaseService {}
 class AuthService {}
+class ProfileService {}
 const angular = {
   Injectable: () => target => target, signal, computed: fn => fn, effect: () => {}, untracked: fn => fn(), DestroyRef: class {},
-  inject: token => token === SupabaseService ? { client: { from: query, rpc: (...args) => { const promise = rpc(...args); promise.abortSignal = () => promise; return promise; } } } : token === AuthService ? currentAuth : { onDestroy() {} }
+  inject: token => token === ProfileService ? { load: async () => true, player: p => p } : token === SupabaseService ? { client: { from: query, rpc: (...args) => { const promise = rpc(...args); promise.abortSignal = () => promise; return promise; } } } : token === AuthService ? currentAuth : { onDestroy() {} }
 };
 const source = ts.transpileModule(fs.readFileSync('src/app/services/event-state.service.ts', 'utf8'), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, experimentalDecorators: true }
 }).outputText;
-const context = { exports: {}, require: name => name === '@angular/core' ? angular : { SupabaseService, AuthService }, window: { addEventListener() {}, removeEventListener() {} }, setInterval() {}, clearInterval() {}, Date, Math, AbortSignal, crypto: { randomUUID } };
+const context = { exports: {}, require: name => name === '@angular/core' ? angular : { SupabaseService, AuthService, ProfileService }, window: { addEventListener() {}, removeEventListener() {} }, setInterval() {}, clearInterval() {}, Date, Math, AbortSignal, crypto: { randomUUID } };
 vm.runInNewContext(source, context);
 function session(id, admin) {
   currentAuth = { isAdmin: () => admin, currentUser: () => ({ id, name: id, avatarUrl: '' }), isLoggedIn: () => true };

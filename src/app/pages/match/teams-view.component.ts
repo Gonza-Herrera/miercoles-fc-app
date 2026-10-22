@@ -34,7 +34,7 @@ import { Player, Team } from '../../models/event.model';
               class="tab-btn" 
               [class.active]="selectedTeamId() === team.id"
               (click)="selectedTeamId.set(team.id)">
-              {{ team.name }}
+              {{ state.teamName(team) }}
             </button>
           }
         </div>
@@ -42,7 +42,7 @@ import { Player, Team } from '../../models/event.model';
         <!-- Soccer Pitch Container -->
         <div class="pitch-container">
           <div class="pitch-header">
-            <h3>{{ activeTeam()?.name || 'Equipo' }}</h3>
+            <h3>{{ activeTeam() ? state.teamName(activeTeam()!) : 'Equipo' }}</h3>
             @if (activeTeam()?.captainPlayerId; as captainId) { <span class="player-count">Capitán: {{ state.getPlayer(captainId).name }}</span> }
             <span class="player-count">{{ teamPlayers().length }} jugadores</span>
           </div>

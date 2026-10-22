@@ -1,5 +1,6 @@
 import { Injectable, inject, signal, computed, effect, DestroyRef, untracked } from '@angular/core';
 import { SupabaseService } from './supabase.service';
+import { ProfileService } from './profile.service';
 import { AuthService } from './auth.service';
 import { Player, SoccerEvent, AttendanceStatus, MenuItem, Team, PaymentRecord, PaymentKind } from '../models/event.model';
 
@@ -7,6 +8,7 @@ import { Player, SoccerEvent, AttendanceStatus, MenuItem, Team, PaymentRecord, P
   providedIn: 'root'
 })
 export class EventStateService {
+  private profiles = inject(ProfileService);
   private auth = inject(AuthService);
   private sb = inject(SupabaseService).client;
   readonly loading = signal(true);
@@ -91,6 +93,7 @@ export class EventStateService {
         this.players.set([]);
         return;
       }
+      await this.profiles.load();
       const { data: confirmations, error: attendanceError } = await this.sb.from('event_rsvps')
         .select('*').eq('event_id', data.id).abortSignal(AbortSignal.timeout(15000));
       if (attendanceError) throw attendanceError;
@@ -104,7 +107,7 @@ export class EventStateService {
           playerId: row.player_id, playsSoccer: row.plays_soccer,
           attendsDinner: row.attends_dinner, confirmedAt: row.confirmed_at
         };
-        players.push({ ...row.player, role: data.data.playerRoles?.[row.player_id] ?? row.player.role } as Player);
+        players.push(this.profiles.player({ ...row.player, id: row.player_id, role: data.data.playerRoles?.[row.player_id] ?? row.player.role } as Player));
       }
       if (revision !== this.revision || this.saving() || this.auth.currentUser()?.id !== userId) return;
       this.players.set(players);
@@ -321,6 +324,11 @@ export class EventStateService {
 
   // Global total pending
   readonly totalPendingAmount = computed(() => this.matchPendingAmount() + this.dinnerPendingAmount());
+
+  teamName(team: Team): string {
+    const profile = team.captainPlayerId ? this.profiles.profiles()[team.captainPlayerId] : undefined;
+    return profile ? `Equipo de ${profile.display_name}` : team.name;
+  }
 
   // Helper methods to get player info
   getPlayer(id: string): Player {

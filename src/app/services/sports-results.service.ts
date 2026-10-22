@@ -1,4 +1,5 @@
 import { DestroyRef, Injectable, inject, signal } from '@angular/core';
+import { ProfileService } from './profile.service';
 import { SupabaseService } from './supabase.service';
 import { AuthService } from './auth.service';
 import { HistoricalEvent } from '../utils/event-statistics';
@@ -7,6 +8,7 @@ import { validateSports } from '../utils/sports-statistics';
 
 @Injectable()
 export class SportsResultsService {
+  private profiles = inject(ProfileService);
   private client = inject(SupabaseService).client;
   private auth = inject(AuthService);
   private controller?: AbortController;
@@ -38,6 +40,9 @@ export class SportsResultsService {
       if (error) throw error;
       if (controller.signal.aborted) throw new Error('Tiempo agotado');
       if (!data) throw new Error('No encontramos el evento.');
+      await this.profiles.load();
+      if (controller.signal.aborted) return false;
+      data.event_rsvps = data.event_rsvps.map(r => ({ ...r, player: this.profiles.player({ ...r.player, id: r.player_id }) }));
       this.event.set(data as HistoricalEvent);
       this.record.set(data.event_sports as SportsRecord | null);
       this.attempt = undefined; this.canRetry.set(false); this.conflict.set(false);

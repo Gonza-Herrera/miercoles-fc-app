@@ -1,10 +1,12 @@
 import { DestroyRef, Injectable, inject, signal } from '@angular/core';
+import { ProfileService } from './profile.service';
 import { SupabaseService } from './supabase.service';
 import { HistoricalEvent } from '../utils/event-statistics';
 
 // Provided by the statistics page, so leaving it disposes its data and requests.
 @Injectable()
 export class StatisticsService {
+  private profiles = inject(ProfileService);
   private client = inject(SupabaseService).client;
   private controller?: AbortController;
   readonly history = signal<HistoricalEvent[]>([]);
@@ -35,6 +37,9 @@ export class StatisticsService {
         if ((data?.length ?? 0) < pageSize) break;
       }
       if (controller.signal.aborted) throw new Error('La consulta tardó demasiado.');
+      await this.profiles.load();
+      for (const event of history) event.event_rsvps = event.event_rsvps.map(r => ({ ...r, player: this.profiles.player({ ...r.player, id: r.player_id }) }));
+      if (controller.signal.aborted) return;
       this.history.set(history);
     } catch {
       if (this.controller === controller) {

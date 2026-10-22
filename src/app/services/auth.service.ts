@@ -2,6 +2,7 @@ import { Injectable, inject, signal, computed } from '@angular/core';
 import { Router } from '@angular/router';
 import { Session, User, AuthError } from '@supabase/supabase-js';
 import { SupabaseService } from './supabase.service';
+import { ProfileService } from './profile.service';
 import { PushNotificationsService } from './push-notifications.service';
 
 /** Email that gets the admin role */
@@ -19,6 +20,7 @@ export interface AppUser {
 export class AuthService {
   private sb = inject(SupabaseService).client;
   private router = inject(Router);
+  private profiles = inject(ProfileService);
   private push = inject(PushNotificationsService);
 
   // ─── Reactive state ────────────────────────────────────────────────────────
@@ -44,15 +46,22 @@ export class AuthService {
   constructor() {
     // 1. Restore session from localStorage on boot
     this.sb.auth.getSession().then(({ data }) => {
-      this.session.set(data.session);
+      this.acceptSession(data.session);
       this.initialized.set(true);
     });
 
     // 2. Keep session signal in sync with any future changes
     this.sb.auth.onAuthStateChange((_event, session) => {
-      this.session.set(session);
+      this.acceptSession(session);
       this.initialized.set(true);
     });
+  }
+
+  private acceptSession(session: Session | null) {
+    this.profiles.activate(session?.user.id ?? '');
+    this.session.set(session);
+    // Do not await a Supabase query inside onAuthStateChange's auth lock.
+    if (session) setTimeout(() => { void this.profiles.load(); }, 0);
   }
 
   // ─── Auth methods ───────────────────────────────────────────────────────────
@@ -95,11 +104,12 @@ export class AuthService {
 
   private mapUser(user: User): AppUser {
     const meta = user.user_metadata ?? {};
+    const profile = this.profiles.profiles()[user.id];
     return {
       id: user.id,
       email: user.email ?? '',
-      name: meta['full_name'] ?? meta['name'] ?? user.email?.split('@')[0] ?? 'Usuario',
-      avatarUrl: meta['avatar_url'] ?? meta['picture'] ?? undefined,
+      name: profile?.display_name ?? meta['full_name'] ?? meta['name'] ?? user.email?.split('@')[0] ?? 'Usuario',
+      avatarUrl: this.profiles.avatar(profile, meta['avatar_url'] ?? meta['picture'] ?? ''),
       isAdmin: user.email === ADMIN_EMAIL,
     };
   }

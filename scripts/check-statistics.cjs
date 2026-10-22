@@ -117,8 +117,8 @@ const client = { from: table => {
 const signal = initial => { let value = initial; const read = () => value; read.set = next => { value = next; }; return read; };
 const { StatisticsService } = loadModule('src/app/services/statistics.service.ts', {
   '@angular/core': { Injectable: () => value => value, signal,
-    inject: token => token === 'destroy' ? { onDestroy() {} } : { client }, DestroyRef: 'destroy' },
-  './supabase.service': { SupabaseService: 'supabase' }
+    inject: token => token === 'profiles' ? { load: async () => true, player: p => p } : token === 'destroy' ? { onDestroy() {} } : { client }, DestroyRef: 'destroy' },
+  './profile.service': { ProfileService: 'profiles' }, './supabase.service': { SupabaseService: 'supabase' }
 });
 (async () => {
   const service = new StatisticsService();

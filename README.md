@@ -264,3 +264,33 @@ sintético que se revierte por completo con `ROLLBACK`. Requiere un administrado
 y al menos nueve jugadores existentes. Para comprobar la interacción entre
 dispositivos: abrir la selección con cada capitán, elegir un jugador, actualizar
 el otro dispositivo y verificar el turno; luego sumar un jugador y probar una baja.
+
+## Mi perfil
+
+Todos los usuarios pueden abrir **Inicio → avatar → Mi perfil** para cambiar el
+nombre visible (2 a 60 caracteres), subir una foto del dispositivo o quitarla.
+La identidad de acceso y el rol siguen vinculados a la cuenta autenticada.
+El perfil personalizado se guarda en `public.user_profiles`, separado de los
+datos que Google actualiza al iniciar sesión. Sin personalización se usa Google.
+
+Las imágenes se recortan al centro y se convierten en JPG de 512 × 512 en el
+navegador. El original puede pesar hasta 10 MB; el bucket `profile-photos` admite
+JPG de hasta 512 KB. Los archivos tienen rutas nuevas e inmutables para evitar
+caché antigua. El bucket sirve las fotos mediante URLs públicas; solo el dueño
+puede subir archivos a su carpeta. Los perfiles solo se leen con sesión iniciada
+y cada usuario solo puede escribir el suyo. No se exponen correos en esta tabla.
+
+Los listados del evento, resultados y estadísticas consultan la identidad actual
+sin modificar asistencias, equipos guardados ni movimientos de pago históricos.
+Los cambios se actualizan en otros dispositivos al refrescar la vista del evento
+(cada 15 segundos o al volver a enfocar la app). Para estadísticas y resultados,
+volver a abrir o actualizar su vista. Las fotos anteriores se conservan; una
+limpieza de archivos sin referencia puede añadirse si crece el almacenamiento.
+
+`database/user-profiles.sql` está aplicado al proyecto actual.
+`database/tests/user-profiles.sql` prueba permisos y validaciones con roles reales
+y revierte sus escrituras con `ROLLBACK`.
+
+```bash
+npm run test:profiles
+```

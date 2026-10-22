@@ -43,8 +43,8 @@ const client = {
 const signal = initial => { let value = initial; const read = () => value; read.set = next => { value = next; }; return read; };
 const { SportsResultsService } = load('src/app/services/sports-results.service.ts', {
   '@angular/core': { Injectable: () => target => target, signal, DestroyRef: 'destroy',
-    inject: token => token === 'destroy' ? { onDestroy() {} } : token === 'auth' ? { isAdmin: () => admin } : { client } },
-  './supabase.service': { SupabaseService: 'supabase' }, './auth.service': { AuthService: 'auth' },
+    inject: token => token === 'profiles' ? { load: async () => true, player: p => p } : token === 'destroy' ? { onDestroy() {} } : token === 'auth' ? { isAdmin: () => admin } : { client } },
+  './profile.service': { ProfileService: 'profiles' }, './supabase.service': { SupabaseService: 'supabase' }, './auth.service': { AuthService: 'auth' },
   '../utils/sports-statistics': utils
 });
 (async () => {

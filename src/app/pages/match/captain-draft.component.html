@@ -22,12 +22,12 @@
         @if (!open()) { <h2>Equipos cerrados</h2><p>El partido ya comenzó.</p> }
         @else if (draft().departed.length) { <h2>Hay bajas por resolver</h2><p>El administrador debe resolver los reemplazos para continuar la elección.</p> }
         @else if (draft().confirmed.length < 8) { <h2>Elección pausada</h2><p>Faltan jugadores para llegar al mínimo de 8 confirmados.</p> }
-        @else if (draft().available.length) { <h2>{{ myTurn() ? '¡Es tu turno!' : 'Turno de ' + name(draft().nextTeam!.captainPlayerId!) }}</h2><p>El próximo jugador se suma a {{ draft().nextTeam?.name }}.</p> }
+        @else if (draft().available.length) { <h2>{{ myTurn() ? '¡Es tu turno!' : 'Turno de ' + name(draft().nextTeam!.captainPlayerId!) }}</h2><p>El próximo jugador se suma a {{ draft().nextTeam ? state.teamName(draft().nextTeam!) : '' }}.</p> }
         @else { <h2>{{ event().captainDraft?.confirmedAt ? 'Equipos confirmados' : 'Todos los confirmados tienen equipo' }}</h2><p>Si se suma otro jugador, los capitanes podrán continuar eligiendo.</p> }
       </section>
       @for (team of draft().teams; track team.id) {
         <section class="card">
-          <h2>{{ team.name }}</h2><p class="muted">DT / Capitán: {{ name(team.captainPlayerId!) }} · {{ team.playerIds.length }} jugadores</p>
+          <h2>{{ state.teamName(team) }}</h2><p class="muted">DT / Capitán: {{ name(team.captainPlayerId!) }} · {{ team.playerIds.length }} jugadores</p>
           @for (id of team.playerIds; track id) {
             <div class="player">
               <div class="identity"><strong>{{ name(id) }}</strong>@if (team.captainPlayerId === id) { <span class="badge">Capitán</span> }</div>
