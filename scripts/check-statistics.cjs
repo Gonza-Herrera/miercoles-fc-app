@@ -87,6 +87,21 @@ assert.ok(sportsUtils.validateSports(sportingEvent.data, { fixtures: [fixture('b
 assert.equal(sportsUtils.validateSports(sportingEvent.data, { fixtures: [fixture('unattributed', 5, 0)] }), null);
 assert.equal(calculateStatistics([event('no-result', '2026-10-01', 'completed', ['a'], [])], 'all', today).sports.players.length, 0);
 
+const pollHistory = structuredClone(sportingEvent);
+const fixtureToVote = pollHistory.event_sports.data.fixtures[0];
+pollHistory.fixture_polls = [{ event_id: pollHistory.id, fixture_id: fixtureToVote.id, eligible_player_ids: ['a', 'b', 'c'],
+  closed_at: null, winner_player_ids: [], vote_count: null }];
+assert.equal(calculateStatistics([pollHistory], 'all', today).sports.players.find(p => p.id === 'a').mvps, 0);
+pollHistory.fixture_polls[0].closed_at = '2026-10-08T00:00:00Z';
+pollHistory.fixture_polls[0].winner_player_ids = ['a', 'b'];
+pollHistory.fixture_polls[0].vote_count = 2;
+const tied = calculateStatistics([pollHistory], 'all', today).sports;
+assert.equal(tied.players.find(p => p.id === 'a').mvps, 1);
+assert.equal(tied.players.find(p => p.id === 'b').mvps, 1);
+pollHistory.fixture_polls[0].winner_player_ids = [];
+pollHistory.fixture_polls[0].vote_count = 0;
+assert.equal(calculateStatistics([pollHistory], 'all', today).sports.players.find(p => p.id === 'a').mvps, 0);
+
 let fail = false;
 const ranges = [];
 const pages = Array.from({ length: 201 }, (_, i) => event(String(i), '2026-10-01', 'completed', ['a'], []));

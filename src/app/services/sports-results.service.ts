@@ -55,6 +55,15 @@ export class SportsResultsService {
     if (!this.auth.isAdmin() || !this.event() || this.loading() || this.saving() || this.canRetry() || this.conflict()) return false;
     const error = validateSports(this.event()!.data, data);
     if (error) { this.error.set(error); return false; }
+    for (const fixture of data.fixtures) {
+      const previous = this.record()?.data.fixtures.find(saved => saved.id === fixture.id);
+      if (!previous && fixture.mvpPlayerId) {
+        this.error.set('La figura de los nuevos cruces se elige por votación.'); return false;
+      }
+      if (previous && (previous.mvpPlayerId ?? null) !== (fixture.mvpPlayerId ?? null)) {
+        this.error.set('Las figuras históricas del admin no se modifican.'); return false;
+      }
+    }
     this.attempt = { eventId: this.event()!.id, version: this.record()?.version ?? -1,
       data: structuredClone(data), operation: crypto.randomUUID() };
     return this.persist();

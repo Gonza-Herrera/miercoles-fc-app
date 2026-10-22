@@ -22,3 +22,21 @@ export interface SportsRecord {
   last_operation: string;
   updated_at: string;
 }
+
+export interface FixturePoll {
+  event_id: string;
+  fixture_id: string;
+  eligible_player_ids: string[];
+  closed_at: string | null;
+  winner_player_ids: string[];
+  vote_count: number | null;
+}
+
+export interface FixtureVote {
+  event_id: string;
+  fixture_id: string;
+  voter_id: string;
+  candidate_id: string;
+  version: number;
+  last_operation: string;
+}

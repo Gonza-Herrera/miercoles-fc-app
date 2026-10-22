@@ -1,5 +1,5 @@
 import { SoccerEvent } from '../models/event.model';
-import { EventSports, MatchResult } from '../models/sports.model';
+import { EventSports, FixturePoll, MatchResult } from '../models/sports.model';
 
 export function fixtureParticipants(event: SoccerEvent, fixture: Pick<MatchResult, 'homeTeamId' | 'awayTeamId'>) {
   const teams = event.teams?.teams ?? [];
@@ -42,7 +42,7 @@ export function validateSports(event: SoccerEvent, sports: EventSports): string 
   return null;
 }
 
-export function calculateSportsStatistics(history: { data: SoccerEvent; event_sports?: { data: EventSports } | null;
+export function calculateSportsStatistics(history: { data: SoccerEvent; event_sports?: { data: EventSports } | null; fixture_polls?: FixturePoll[];
   event_rsvps: { player_id: string; player: { name: string } }[] }[]) {
   const players = new Map<string, { id: string; name: string; played: number; wins: number; draws: number;
     losses: number; goals: number; assists: number; mvps: number }>();
@@ -53,6 +53,8 @@ export function calculateSportsStatistics(history: { data: SoccerEvent; event_sp
     const names = new Map(row.event_rsvps.map(p => [p.player_id, p.player.name]));
     for (const fixture of sports.fixtures) {
       const sides = fixtureParticipants(row.data, fixture);
+      const poll = row.fixture_polls?.find(p => p.fixture_id === fixture.id);
+      const winners = poll ? (poll.closed_at ? poll.winner_player_ids : []) : (fixture.mvpPlayerId ? [fixture.mvpPlayerId] : []);
       fixtures++; goals += fixture.homeScore + fixture.awayScore;
       for (const [ids, forGoals, againstGoals] of [
         [sides.home, fixture.homeScore, fixture.awayScore], [sides.away, fixture.awayScore, fixture.homeScore]
@@ -67,7 +69,7 @@ export function calculateSportsStatistics(history: { data: SoccerEvent; event_sp
           const performance = fixture.players.find(p => p.playerId === id);
           player.goals += performance?.goals ?? 0;
           player.assists += performance?.assists ?? 0;
-          player.mvps += Number(fixture.mvpPlayerId === id);
+          player.mvps += Number(winners.includes(id));
           players.set(id, player);
         }
       }

@@ -16,7 +16,7 @@ begin
  perform set_config('test.event_id',e::text,true);
  insert into public.event_rsvps(event_id,player_id,plays_soccer,attends_dinner,player)
    values(e,auth.uid(),true,true,jsonb_build_object('id',auth.uid(),'name','Admin test'));
- f:=jsonb_build_object('id',gen_random_uuid(),'homeTeamId','A','awayTeamId','B','homeScore',2,'awayScore',1,'mvpPlayerId',a,
+ f:=jsonb_build_object('id',gen_random_uuid(),'homeTeamId','A','awayTeamId','B','homeScore',2,'awayScore',1,'mvpPlayerId',null,
    'players',jsonb_build_array(jsonb_build_object('playerId',a,'goals',2,'assists',0),jsonb_build_object('playerId',b,'goals',1,'assists',0)));
  stats:=jsonb_build_object('fixtures',jsonb_build_array(f));
  perform set_config('test.stats',stats::text,true);

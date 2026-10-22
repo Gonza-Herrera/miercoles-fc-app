@@ -12,23 +12,23 @@
       @if (!['dinner', 'completed'].includes(event.data.status)) {
         <section class="card">Los resultados estarán disponibles cuando el admin confirme quiénes jugaron.</section>
       } @else {
-        <p class="muted">Cada cruce cuenta para todos los presentes de ambos equipos. El jugador del partido lo elige el admin.</p>
+        <p class="muted">Cada cruce cuenta para los presentes de ambos equipos. Sus participantes eligen a la figura por votación.</p>
         @for (fixture of fixtures(); track fixture.id) {
           <section class="card">
             <div class="score"><span>{{ teamName(fixture.homeTeamId) }}</span><strong>{{ fixture.homeScore }} – {{ fixture.awayScore }}</strong><span>{{ teamName(fixture.awayTeamId) }}</span></div>
-            @if (fixture.mvpPlayerId) { <p class="mvp">⭐ {{ playerName(fixture.mvpPlayerId) }} · Jugador del partido</p> }
             @for (player of fixture.players; track player.playerId) {
               @if (player.goals || player.assists) {
                 <div class="performance"><span>{{ playerName(player.playerId) }}</span><span>⚽ {{ player.goals }} · 👟 {{ player.assists }}</span></div>
               }
             }
+            <app-fixture-voting [eventId]="event.id" [fixtureId]="fixture.id" [participants]="participants(fixture)" [legacyMvp]="fixture.mvpPlayerId" />
             @if (canEdit() && !draft && !data.canRetry() && !data.conflict()) {
               <div class="actions">
                 <button class="btn btn-secondary" [disabled]="data.saving()" (click)="edit(fixture)">Editar</button>
                 <button class="text-danger" [disabled]="data.saving()" (click)="removalId = fixture.id">Quitar cruce</button>
               </div>
               @if (removalId === fixture.id) {
-                <p>¿Quitar este cruce y sus estadísticas de los rankings?</p>
+                <p>¿Quitar este cruce y sus estadísticas de los rankings? Solo se permite si no recibió votos y su votación sigue abierta.</p>
                 <div class="actions"><button class="btn btn-secondary" [disabled]="data.saving()" (click)="removalId = null">Cancelar</button><button class="btn btn-primary" [disabled]="data.saving()" (click)="remove()">Confirmar</button></div>
               }
             }
@@ -44,8 +44,8 @@
             <h2>Cargar resultado</h2>
             <fieldset [disabled]="data.saving() || data.canRetry() || data.conflict()">
               <div class="form-row">
-                <label>Equipo 1<select [(ngModel)]="form.homeTeamId" (ngModelChange)="changeTeams()">@for (team of teams(); track team.id) { <option [value]="team.id">{{ team.name }}</option> }</select></label>
-                <label>Equipo 2<select [(ngModel)]="form.awayTeamId" (ngModelChange)="changeTeams()">@for (team of teams(); track team.id) { <option [value]="team.id">{{ team.name }}</option> }</select></label>
+                <label>Equipo 1<select [disabled]="fixtures().some(isEditingFixture)" [(ngModel)]="form.homeTeamId" (ngModelChange)="changeTeams()">@for (team of teams(); track team.id) { <option [value]="team.id">{{ team.name }}</option> }</select></label>
+                <label>Equipo 2<select [disabled]="fixtures().some(isEditingFixture)" [(ngModel)]="form.awayTeamId" (ngModelChange)="changeTeams()">@for (team of teams(); track team.id) { <option [value]="team.id">{{ team.name }}</option> }</select></label>
               </div>
               <div class="form-row">
                 <label>Goles equipo 1<input type="number" min="0" max="999" step="1" inputmode="numeric" placeholder="Marcador" [(ngModel)]="form.homeScore" /></label>
@@ -62,9 +62,7 @@
                   </div>
                 </div>
               }
-              <label>⭐ Jugador del partido (opcional)
-                <select [(ngModel)]="form.mvpPlayerId"><option [ngValue]="null">Sin elegir</option>@for (player of participants(form); track player.id) { <option [value]="player.id">{{ player.name }}</option> }</select>
-              </label>
+              <p class="muted">Al guardar un cruce nuevo se abre su votación. Cada participante puede elegir a otro jugador; los equipos quedan fijos para conservar la validez de los votos.</p>
               @if (formError) { <p class="error" role="alert">{{ formError }}</p> }
               <div class="actions"><button class="btn btn-secondary" (click)="draft = null; formError = ''">Cancelar</button><button class="btn btn-primary" (click)="save()">Guardar resultado</button></div>
             </fieldset>

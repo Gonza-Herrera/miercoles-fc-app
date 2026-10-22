@@ -19,7 +19,7 @@ const event = { id: crypto.randomUUID(), data: {
   teams: { teams: [{ id: 'A', playerIds: ['a'] }, { id: 'B', playerIds: ['b'] }] }
 }, event_rsvps: [] };
 const result = { fixtures: [{ id: crypto.randomUUID(), homeTeamId: 'A', awayTeamId: 'B', homeScore: 1, awayScore: 0,
-  players: [{ playerId: 'a', goals: 1, assists: 0 }], mvpPlayerId: 'a' }] };
+  players: [{ playerId: 'a', goals: 1, assists: 0 }], mvpPlayerId: null }] };
 let admin = true, network = 'ok', server = null, calls = 0;
 const client = {
   from: () => {

@@ -1,5 +1,5 @@
 import { Player, SoccerEvent } from '../models/event.model';
-import { EventSports } from '../models/sports.model';
+import { EventSports, FixturePoll } from '../models/sports.model';
 import { calculateSportsStatistics } from './sports-statistics';
 
 export type StatisticsPeriod = 'month' | 'year' | 'all';
@@ -8,6 +8,7 @@ export interface HistoricalEvent {
   data: SoccerEvent;
   event_rsvps: { player_id: string; player: Player }[];
   event_sports?: { data: EventSports } | null;
+  fixture_polls?: FixturePoll[];
 }
 
 export function selectStatisticsHistory(history: HistoricalEvent[], period: StatisticsPeriod, today = new Date()) {

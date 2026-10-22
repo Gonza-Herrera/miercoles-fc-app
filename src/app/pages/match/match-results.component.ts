@@ -7,12 +7,13 @@ import { AuthService } from '../../services/auth.service';
 import { SportsResultsService } from '../../services/sports-results.service';
 import { MatchResult } from '../../models/sports.model';
 import { fixtureParticipants, validateSports } from '../../utils/sports-statistics';
+import { FixtureVotingComponent } from './fixture-voting.component';
 
 type ResultDraft = Omit<MatchResult, 'homeScore' | 'awayScore'> & { homeScore: number | null; awayScore: number | null };
 
 @Component({
   selector: 'app-match-results', standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink], providers: [SportsResultsService],
+  imports: [CommonModule, FormsModule, RouterLink, FixtureVotingComponent], providers: [SportsResultsService],
   templateUrl: './match-results.component.html', styleUrl: './match-results.component.css'
 })
 export class MatchResultsComponent {
@@ -27,6 +28,7 @@ export class MatchResultsComponent {
   formError = '';
   removalId: string | null = null;
   private eventId = '';
+  readonly isEditingFixture = (fixture: MatchResult) => fixture.id === this.draft?.id;
 
   constructor() {
     this.route.paramMap.pipe(takeUntilDestroyed()).subscribe(params => {
