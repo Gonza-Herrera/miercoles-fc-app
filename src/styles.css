@@ -86,8 +86,9 @@ body {
   box-shadow: 0 0 50px rgba(0, 0, 0, 0.4);
 }
 
-/* Installed iOS apps draw beneath the status bar with black-translucent.
-   Reserve that area on every route and keep scrolling content out of it. */
+/* Preserve safe-area spacing on devices that expose an inset, including older
+   installations that have cached the previous translucent status-bar setting.
+   The current HTML requests an opaque native iOS status bar. */
 .app-viewport::before {
   content: '';
   position: fixed;
@@ -116,8 +117,7 @@ body {
   position: sticky;
   top: var(--safe-area-top);
   z-index: 40;
-  /* Opaque headers prevent iOS standalone compositing from blurring the
-     title and avatar next to the status-bar safe area. */
+  /* Keep app headers opaque; the native iOS status bar is configured in index.html. */
   background: var(--bg-card);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;

@@ -351,3 +351,18 @@ dentro de su transacción y restauran el estado original al terminar.
 Publicar el frontend mediante commit/push a Netlify es necesario para mostrar la
 nueva pantalla. La protección del servidor ya funciona aunque quede desplegada
 una versión anterior de la interfaz.
+
+
+## Barra superior en iPhone
+
+La app instalada usa `apple-mobile-web-app-status-bar-style=black` para mantener
+una barra de estado nativa opaca y el contenido debajo de ella. Los encabezados
+tienen fondo sólido y no usan `backdrop-filter`. Se conservan los insets de
+seguridad para dispositivos que los exponen.
+
+iOS puede conservar la configuración de la barra de estado al instalar la app.
+Después de desplegar un cambio en esta etiqueta, cerrar completamente la app y
+volver a abrirla. Si conserva la franja difuminada, quitar el acceso de la pantalla
+de inicio y agregarlo nuevamente desde Safari. Probar Inicio y una vista interna,
+tanto al entrar como después de hacer scroll. La compilación o una emulación de
+navegador no verifican el efecto nativo de la barra de estado: requiere un iPhone.
