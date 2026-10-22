@@ -1,0 +1,79 @@
+<div class="captains-page">
+  <header class="header-bar"><a routerLink="/partido/confirmados" class="back" aria-label="Volver a confirmados">‹</a><strong>DT / Capitanes</strong><span aria-hidden="true">🧢</span></header>
+  <main>
+    <h1>{{ event().title }}</h1>
+    @if (!event().captainDraft) {
+      <section class="card">
+        <h2>Elegir DT / Capitanes</h2>
+        <p>Cada capitán juega en su equipo y elige jugadores por turnos. La primera elección se sortea.</p>
+        <p class="muted">{{ draft().confirmed.length }} confirmados · Mínimo 8 jugadores</p>
+        @if (auth.isAdmin() && open()) {
+          <fieldset [disabled]="state.saving() || !!pending() || draft().confirmed.length < 8">
+            <label>Capitán del primer equipo<select [(ngModel)]="captainA"><option value="">Seleccionar jugador</option>@for (id of draft().confirmed; track id) { <option [value]="id" [disabled]="id === captainB">{{ name(id) }}</option> }</select></label>
+            <label>Capitán del segundo equipo<select [(ngModel)]="captainB"><option value="">Seleccionar jugador</option>@for (id of draft().confirmed; track id) { <option [value]="id" [disabled]="id === captainA">{{ name(id) }}</option> }</select></label>
+            <div class="actions"><button class="btn btn-primary" [disabled]="!captainA || !captainB || captainA === captainB" (click)="pending.set('manual')">Asignar capitanes</button><button class="btn btn-secondary" (click)="pending.set('random')">Sortear capitanes</button></div>
+          </fieldset>
+          <small>El sorteo prioriza a quienes menos dirigieron y evita los capitanes de la fecha anterior si hay alternativas. Cuenta las fechas con partido cerrado.</small>
+          <a class="text-link" routerLink="/partido/armar-equipos">Usar armado clásico</a>
+        } @else { <p class="muted">El administrador asignará los capitanes cuando haya al menos 8 confirmados.</p> }
+      </section>
+    } @else {
+      <section class="card status" aria-live="polite">
+        @if (!open()) { <h2>Equipos cerrados</h2><p>El partido ya comenzó.</p> }
+        @else if (draft().departed.length) { <h2>Hay bajas por resolver</h2><p>El administrador debe resolver los reemplazos para continuar la elección.</p> }
+        @else if (draft().confirmed.length < 8) { <h2>Elección pausada</h2><p>Faltan jugadores para llegar al mínimo de 8 confirmados.</p> }
+        @else if (draft().available.length) { <h2>{{ myTurn() ? '¡Es tu turno!' : 'Turno de ' + name(draft().nextTeam!.captainPlayerId!) }}</h2><p>El próximo jugador se suma a {{ draft().nextTeam?.name }}.</p> }
+        @else { <h2>{{ event().captainDraft?.confirmedAt ? 'Equipos confirmados' : 'Todos los confirmados tienen equipo' }}</h2><p>Si se suma otro jugador, los capitanes podrán continuar eligiendo.</p> }
+      </section>
+      @for (team of draft().teams; track team.id) {
+        <section class="card">
+          <h2>{{ team.name }}</h2><p class="muted">DT / Capitán: {{ name(team.captainPlayerId!) }} · {{ team.playerIds.length }} jugadores</p>
+          @for (id of team.playerIds; track id) {
+            <div class="player">
+              <div class="identity"><strong>{{ name(id) }}</strong>@if (team.captainPlayerId === id) { <span class="badge">Capitán</span> }</div>
+              @if (draft().departed.includes(id)) {
+                <span class="absent">Ya no está confirmado</span>
+                @if (auth.isAdmin() && open()) {
+                  <label class="replacement">Reemplazo<select [(ngModel)]="replacements[id]" [disabled]="state.saving()"><option [ngValue]="undefined">Seleccionar jugador</option>@for (candidate of replacementChoices(team, id); track candidate) { <option [value]="candidate">{{ name(candidate) }}</option> }</select></label>
+                  <div class="actions"><button class="btn btn-secondary" [disabled]="!replacements[id] || state.saving()" (click)="replace(id)">Resolver reemplazo</button>
+                  @if (team.captainPlayerId !== id) { <button class="btn btn-secondary" [disabled]="state.saving()" (click)="state.captainAction('remove', { outgoingId: id })">Quitar baja</button> }</div>
+                }
+              } @else if (canPosition(team)) {
+                <label class="position">Posición<select [ngModel]="event().playerRoles?.[id] || state.getPlayer(id).role || 'MED'" (ngModelChange)="position(id, $event)" [disabled]="state.saving()">@for (role of roles; track role) { <option [value]="role">{{ role }}</option> }</select></label>
+              } @else { <span class="muted">{{ event().playerRoles?.[id] || state.getPlayer(id).role || 'MED' }}</span> }
+              @if (auth.isAdmin() && open() && team.captainPlayerId !== id && !draft().departed.includes(id)) {
+                <button class="btn btn-secondary" [disabled]="state.saving()" (click)="state.captainAction('move', { playerId: id })">Cambiar al otro equipo</button>
+              }
+            </div>
+          }
+        </section>
+      }
+      <section class="card">
+        <h2>Jugadores disponibles ({{ draft().available.length }})</h2>
+        @for (id of draft().available; track id) {
+          <div class="player"><strong>{{ name(id) }}</strong>@if (myTurn()) { <button class="btn btn-primary" [disabled]="state.saving()" (click)="state.captainAction('pick', { playerId: id })">Elegir</button> }</div>
+        } @empty { <p class="muted">No hay jugadores pendientes.</p> }
+      </section>
+      @if (auth.isAdmin() && open()) {
+        <section class="card"><h2>Confirmación del administrador</h2>
+          <p>Confirmá cuando todos tengan equipo. Los equipos deben tener al menos 4 jugadores y una diferencia máxima de un jugador.</p>
+          <button class="btn btn-primary full" [disabled]="!draft().ready || state.saving()" (click)="state.captainAction('confirm')">Confirmar equipos</button>
+          <button class="btn btn-secondary full" [disabled]="state.saving()" (click)="pending.set('classic')">Reiniciar y volver al armado clásico</button>
+        </section>
+      }
+      <a class="btn btn-secondary full" routerLink="/partido/equipos">Ver equipos en la cancha</a>
+    }
+    @if (pending()) {
+      <section class="card review" role="alert">
+        <h2>{{ pending() === 'classic' ? '¿Reiniciar equipos?' : 'Confirmar elección de capitanes' }}</h2>
+        @if (pending() === 'manual') { <p>{{ name(captainA) }} y {{ name(captainB) }} dirigirán esta fecha.</p> }
+        @if (pending() === 'random') { <p>Se sortearán dos capitanes entre los confirmados.</p> }
+        <p>{{ pending() === 'classic' ? 'Se quitarán los capitanes y la selección de jugadores de esta fecha.' : 'Los capitanes quedarán en sus propios equipos. Este modo reemplaza cualquier equipo armado previamente.' }}</p>
+        <div class="actions"><button class="btn btn-secondary" [disabled]="state.saving()" (click)="pending.set(null)">Cancelar</button><button class="btn btn-primary" [disabled]="state.saving()" (click)="confirmSetup()">Confirmar</button></div>
+      </section>
+    }
+    <button class="btn btn-secondary full" [disabled]="state.saving()" (click)="state.refreshAfterError()">Actualizar jugadores y turnos</button>
+    @if (state.saving()) { <p role="status">Guardando…</p> }
+    @if (state.canRetry()) { <button class="btn btn-secondary full" [disabled]="state.saving()" (click)="state.retryLastSave()">Reintentar el mismo guardado</button> }
+  </main>
+</div>

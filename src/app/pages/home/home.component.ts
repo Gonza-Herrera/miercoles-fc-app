@@ -178,6 +178,9 @@ import { AuthService } from '../../services/auth.service';
               <span class="q-icon">👥</span>
               <span>Confirmados</span>
             </button>
+            @if ((auth.isAdmin() && event().status === 'open') || event().captainDraft) {
+              <button class="quick-btn" routerLink="/partido/capitanes"><span class="q-icon">🧢</span><span>DT / Capitanes</span></button>
+            }
             @if (auth.isAdmin()) {
             @if (state.canEditTeams()) {
             <button class="quick-btn" routerLink="/partido/armar-equipos">

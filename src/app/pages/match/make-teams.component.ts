@@ -27,6 +27,7 @@ import { Player, Team } from '../../models/event.model';
           <p class="subtitle">{{ soccerPlayers().length }} jugadores confirmados</p>
         </div>
 
+        <a class="btn btn-secondary btn-block" style="margin-bottom:16px" routerLink="/partido/capitanes">Armar con DT / Capitanes</a>
         <!-- Mode Toggle (Aleatorio vs Manual) -->
         <div class="mode-toggle">
           <button 

@@ -229,3 +229,38 @@ fallas, service worker y activación del dispositivo con APIs simuladas.
 roles reales sin enviar nada y revierte todos sus datos con `ROLLBACK`.
 La recepción y los permisos nativos requieren una prueba manual en teléfonos.
 Esta versión incluye envíos manuales; todavía no programa recordatorios semanales.
+
+## Equipos por DT / Capitanes
+
+Desde **Inicio → DT / Capitanes** o **Partido → Confirmados**, el administrador
+puede asignar dos capitanes manualmente o sortearlos cuando haya al menos ocho
+confirmados para jugar. El sorteo prioriza a quienes dirigieron menos fechas con
+partido cerrado y evita los capitanes del partido anterior si hay alternativas.
+Cada capitán integra su propio equipo y el primer turno se sortea.
+
+Los capitanes eligen por turnos entre los disponibles y asignan posiciones dentro
+de su equipo. Los demás usuarios consultan la selección. Los jugadores nuevos
+quedan disponibles para continuar eligiendo; si hay bajas, la elección se pausa
+hasta que el administrador quite o reemplace al jugador. Para reemplazar a un
+capitán también puede promover a un compañero. El administrador puede cambiar de
+equipo a un jugador que no sea capitán para reequilibrar los equipos.
+
+El administrador confirma los equipos antes de iniciar: mínimo cuatro por equipo,
+sin bajas ni confirmados pendientes y con diferencia máxima de un jugador. Nuevas
+elecciones o cambios de posición requieren volver a confirmar. El inicio vuelve a
+validar los RSVP actuales y cierra la edición. El modo clásico sigue disponible;
+volver a él reinicia los capitanes y la selección de esa fecha, previa confirmación.
+
+`database/captain-draft.sql` ya está aplicado al proyecto actual. Los permisos,
+turnos, balance, control de versiones y reintentos se validan en una RPC atómica;
+no se agregan permisos de edición general de eventos a los capitanes.
+
+```bash
+npm run test:captains
+```
+
+`database/tests/captain-draft.sql` verifica el flujo con roles reales y un evento
+sintético que se revierte por completo con `ROLLBACK`. Requiere un administrador
+y al menos nueve jugadores existentes. Para comprobar la interacción entre
+dispositivos: abrir la selección con cada capitán, elegir un jugador, actualizar
+el otro dispositivo y verificar el turno; luego sumar un jugador y probar una baja.

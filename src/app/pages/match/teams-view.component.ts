@@ -23,8 +23,11 @@ import { Player, Team } from '../../models/event.model';
       </header>
 
       <div class="content-body">
+        @if (state.currentEvent().captainDraft) {
+          <a class="btn btn-secondary btn-block" style="margin-bottom:16px" routerLink="/partido/capitanes">Ver selección de DT / Capitanes</a>
+        }
         <!-- Dynamic Team Toggle Tabs (supports 2, 3 or 4 teams) -->
-        <div class="team-tabs">
+        <div class="team-tabs" [class.captain-tabs]="!!state.currentEvent().captainDraft">
           @for (team of allTeams(); track team.id) {
             <button 
               type="button" 
@@ -40,6 +43,7 @@ import { Player, Team } from '../../models/event.model';
         <div class="pitch-container">
           <div class="pitch-header">
             <h3>{{ activeTeam()?.name || 'Equipo' }}</h3>
+            @if (activeTeam()?.captainPlayerId; as captainId) { <span class="player-count">Capitán: {{ state.getPlayer(captainId).name }}</span> }
             <span class="player-count">{{ teamPlayers().length }} jugadores</span>
           </div>
 
@@ -210,6 +214,8 @@ import { Player, Team } from '../../models/event.model';
       white-space: nowrap;
       transition: all 0.2s ease;
     }
+
+    .captain-tabs .tab-btn { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
 
     .tab-btn.active {
       background: var(--primary);

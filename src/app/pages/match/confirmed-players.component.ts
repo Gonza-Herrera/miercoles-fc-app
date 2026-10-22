@@ -81,6 +81,9 @@ type FilterTab = 'todos' | 'juegan' | 'cenan';
 
         <!-- Actions -->
         <div class="action-footer-inline">
+          @if ((auth.isAdmin() && state.currentEvent().status === 'open') || state.currentEvent().captainDraft) {
+            <button class="btn btn-secondary btn-block" routerLink="/partido/capitanes">DT / Capitanes</button>
+          }
           @if (state.canEditTeams()) {
             <button class="btn btn-primary btn-block" routerLink="/partido/armar-equipos">
               Armar equipos

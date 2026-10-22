@@ -33,6 +33,7 @@ export const routes: Routes = [
 
   // Flujo Partido
   { path: 'partido/confirmados',  component: ConfirmedPlayersComponent,    canActivate: [authGuard, eventGuard] },
+  { path: 'partido/capitanes', loadComponent: () => import('./pages/match/captain-draft.component').then(m => m.CaptainDraftComponent), canActivate: [authGuard, eventGuard] },
   { path: 'partido/armar-equipos', component: MakeTeamsComponent,          canActivate: [adminGuard, eventGuard, teamEditGuard] },
   { path: 'partido/equipos',       component: TeamsViewComponent,          canActivate: [authGuard, eventGuard] },
   { path: 'partido/presentes',     component: MatchAttendanceCheckComponent, canActivate: [adminGuard, eventGuard] },

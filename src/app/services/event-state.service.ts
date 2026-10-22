@@ -33,7 +33,7 @@ export class EventStateService {
   private retryAction: (() => Promise<boolean>) | null = null;
   readonly matchClosed = computed(() => ['dinner', 'completed'].includes(this.currentEvent().status));
   readonly dinnerClosed = computed(() => this.currentEvent().status === 'completed');
-  readonly canEditTeams = computed(() => this.auth.isAdmin() && this.currentEvent().status === 'open');
+  readonly canEditTeams = computed(() => this.auth.isAdmin() && this.currentEvent().status === 'open' && !this.currentEvent().captainDraft);
   readonly canEditDinner = computed(() => this.auth.isAdmin() && !this.dinnerClosed());
 
   constructor() {
@@ -177,6 +177,21 @@ export class EventStateService {
       if (error) throw error;
       if (!rows?.[0]) throw new Error('No se recibió confirmación.');
       this.applyRecord(rows[0], attendances);
+      this.players.update(players => players.map(player => ({ ...player, role: rows[0].data.playerRoles?.[player.id] ?? player.role })));
+    });
+  }
+
+  captainAction(action: 'manual' | 'random' | 'pick' | 'replace' | 'remove' | 'move' | 'position' | 'confirm' | 'classic', payload: Record<string, string> = {}): Promise<boolean> {
+    if (!this.hasEvent() || !this.auth.isLoggedIn()) return Promise.resolve(false);
+    const eventId = this.currentEvent().id, version = this.version, operation = crypto.randomUUID();
+    const request = { ...payload };
+    return this.runSave(async () => {
+      const { data: rows, error } = await this.sb.rpc('captain_action', {
+        p_event: eventId, p_version: version, p_operation: operation, p_action: action, p_payload: request
+      }).abortSignal(AbortSignal.timeout(15000));
+      if (error) throw error;
+      if (!rows?.[0]) throw new Error('No se recibió confirmación.');
+      this.applyRecord(rows[0]);
       this.players.update(players => players.map(player => ({ ...player, role: rows[0].data.playerRoles?.[player.id] ?? player.role })));
     });
   }

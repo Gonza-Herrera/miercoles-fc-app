@@ -25,7 +25,17 @@ export interface MenuItem {
   buyerPlayerId?: string; // Encargado opcional por ítem particular
 }
 
+export interface CaptainDraft {
+  captainAId: string;
+  captainBId: string;
+  method: 'manual' | 'random';
+  assignedAt: string;
+  nextTeamId: string;
+  confirmedAt: string | null;
+}
+
 export interface Team {
+  captainPlayerId?: string;
   id: string;
   name: string; // e.g. "Equipo A", "Equipo B", "Equipo C", "Equipo D"
   playerIds: string[];
@@ -64,6 +74,7 @@ export interface SoccerEvent {
   
   // Teams formation (soporta 2, 3 o 4 equipos dinámicos)
   teams?: MatchTeams;
+  captainDraft?: CaptainDraft;
   matchClosedAt?: string;
   dinnerClosedAt?: string;
   playerRoles?: Record<string, Player['role']>;
