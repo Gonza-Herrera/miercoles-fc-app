@@ -1,6 +1,7 @@
 {
   "name": "Miércoles FC",
   "short_name": "Miércoles FC",
+  "id": "/",
   "theme_color": "#4F46E5",
   "background_color": "#F8FAFC",
   "display": "standalone",

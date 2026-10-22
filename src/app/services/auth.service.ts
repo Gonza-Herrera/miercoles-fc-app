@@ -2,6 +2,7 @@ import { Injectable, inject, signal, computed } from '@angular/core';
 import { Router } from '@angular/router';
 import { Session, User, AuthError } from '@supabase/supabase-js';
 import { SupabaseService } from './supabase.service';
+import { PushNotificationsService } from './push-notifications.service';
 
 /** Email that gets the admin role */
 const ADMIN_EMAIL = 'gon.herrera.dev@gmail.com';
@@ -18,6 +19,7 @@ export interface AppUser {
 export class AuthService {
   private sb = inject(SupabaseService).client;
   private router = inject(Router);
+  private push = inject(PushNotificationsService);
 
   // ─── Reactive state ────────────────────────────────────────────────────────
 
@@ -84,6 +86,7 @@ export class AuthService {
 
   /** Sign out and go back to /login */
   async signOut(): Promise<void> {
+    await this.push.detachForSignOut().catch(() => undefined);
     await this.sb.auth.signOut();
     this.router.navigate(['/login']);
   }

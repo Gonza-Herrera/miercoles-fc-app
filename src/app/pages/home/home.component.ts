@@ -237,10 +237,11 @@ import { AuthService } from '../../services/auth.service';
 
         <!-- Actions -->
         @if (auth.isAdmin()) {
-          @if (state.hasEvent() && !state.dinnerClosed()) {
-            <button class="sheet-action sheet-action-primary" routerLink="/admin/editar-evento" (click)="closeProfile()">Editar evento</button>
-          }
-          <button class="sheet-action sheet-action-primary" routerLink="/admin/nuevo-evento" (click)="closeProfile()">Crear un evento</button>
+          <button class="sheet-action sheet-action-primary" routerLink="/admin/nuevo-evento" (click)="closeProfile()">📅 Crear evento</button>
+        }
+        <button class="sheet-action sheet-action-primary" routerLink="/notificaciones" (click)="closeProfile()">🔔 Notificaciones</button>
+        @if (auth.isAdmin() && state.hasEvent() && !state.dinnerClosed()) {
+          <button class="sheet-action sheet-action-primary" routerLink="/admin/editar-evento" (click)="closeProfile()">Editar evento</button>
         }
         <button class="sheet-action" id="btn-sign-out" (click)="signOut()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

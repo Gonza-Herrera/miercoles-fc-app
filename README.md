@@ -165,3 +165,67 @@ npm run test:voting
 
 `database/tests/fixture-voting.sql` prueba permisos, privacidad, cambios, conflictos,
 empates, cierre y ausencia de votos con roles reales, y termina con `ROLLBACK`.
+
+## Notificaciones push manuales
+
+Desde el avatar → **Notificaciones**, cada usuario puede activar las notificaciones
+en ese dispositivo. En iPhone debe abrir la app instalada en la pantalla de inicio
+(iOS 16.4 o posterior) y tocar Activar notificaciones para conceder el permiso.
+Instalar la app no concede ese permiso automáticamente. En Android se requiere
+un navegador compatible y permiso de notificaciones. Cada dispositivo se registra
+por separado; desactivar uno no desactiva los demás.
+
+El administrador ve además el formulario de título, mensaje y destino (Inicio,
+Menú de la cena, Equipos o Confirmados). Primero previsualiza y luego confirma
+el envío a todos los dispositivos activados. El historial diferencia aceptación
+por el servicio push, fallas, dispositivos vencidos/desactivados, entregas sin
+confirmación y pendientes. Aceptación no equivale a visualización o lectura.
+
+Las claves VAPID se generan al abrir Notificaciones con la cuenta admin por primera
+vez. La clave privada queda cifrada en Supabase Vault y solo el backend puede
+consultarla. No se debe generar ni rotar esa clave en cada despliegue: invalidaría
+las suscripciones existentes. El frontend recibe únicamente la clave pública.
+Los usuarios no pueden leer endpoints ajenos ni el historial administrativo.
+
+El service worker `public/push-sw.js` solo maneja notificaciones y sus clics; no
+cachea archivos de la aplicación. Usa el logo de la app y permite únicamente
+destinos locales conocidos. Al cerrar sesión se intenta quitar el dispositivo
+del backend y cancelar su suscripción local; también se limpia el estado de la
+cuenta anterior.
+
+La función `push-notifications` valida la sesión con `auth.getUser()` y el email
+admin en el servidor. El gateway tiene `verify_jwt=false` porque la función hace
+esa verificación explícita, compatible con las claves JWT actuales. No es un
+endpoint de envío anónimo. Las suscripciones solo aceptan HTTPS de proveedores
+push conocidos, y el sender no sigue redirecciones.
+
+Los envíos tienen un ID persistente y un snapshot de dispositivos. Cada lote
+reclama hasta 15 entregas y procesa cinco en paralelo. Los reintentos continúan
+pendientes sin repetir las ya procesadas. Ante pérdida de respuesta, se debe usar
+**Reintentar el mismo envío**; los dispositivos con resultado incierto no se
+reenvían automáticamente. Si se cierra la pantalla antes de terminar, un envío
+registrado puede continuarse desde el historial. Las reclamaciones interrumpidas
+se marcan sin confirmación tras 90 segundos al continuar el envío.
+
+`database/push-notifications.sql` y la Edge Function ya están aplicados al proyecto
+actual. Para otro proyecto, aplicar ese esquema (requiere Vault) y desplegar:
+
+```bash
+supabase functions deploy push-notifications --project-ref TU_PROJECT_REF
+```
+
+Los archivos de la función están en `supabase/functions/push-notifications/`.
+Un push a GitHub despliega el frontend en Netlify, pero no actualiza por sí solo
+las Edge Functions de Supabase. Al agregar otro dominio, actualizar la lista de
+orígenes permitidos de la función y volver a desplegarla.
+
+```bash
+npm run test:push
+```
+
+Estas pruebas verifican autenticación, cifrado Web Push real, endpoints, reintentos,
+fallas, service worker y activación del dispositivo con APIs simuladas.
+`database/tests/push-notifications.sql` verifica permisos, Vault y entregas con
+roles reales sin enviar nada y revierte todos sus datos con `ROLLBACK`.
+La recepción y los permisos nativos requieren una prueba manual en teléfonos.
+Esta versión incluye envíos manuales; todavía no programa recordatorios semanales.
