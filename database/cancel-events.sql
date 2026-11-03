@@ -1,0 +1,63 @@
+-- Apply after group-access.sql. No event is cancelled by this migration.
+alter table public.event_records drop constraint valid_event;
+alter table public.event_records add constraint valid_event check (
+ jsonb_typeof(data) = 'object' and
+ length(trim(data->>'title')) > 0 and length(trim(data->>'location')) > 0 and
+ (data->>'date') ~ '^\d{4}-\d{2}-\d{2}$' and
+ (data->>'time') ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$' and
+ (data->>'pitchPrice')::numeric > 0 and data->>'status' in ('open','playing','dinner','completed','cancelled')
+ and data ?& array['title','location','date','time','pitchPrice','status']);
+
+create or replace function public.validate_event_stage() returns trigger
+language plpgsql security invoker set search_path = '' as $$
+declare previous text; following text; ids jsonb; key text;
+begin
+ perform pg_advisory_xact_lock(hashtextextended(new.id::text,0));
+ following := new.data->>'status';
+ if jsonb_typeof(new.data->'pitchPrice') is distinct from 'number' or (new.data->>'pitchPrice')::numeric <= 0 or (new.data->>'pitchPrice')::numeric <> round((new.data->>'pitchPrice')::numeric,2) then raise exception 'El precio de cancha debe ser positivo y tener como máximo dos decimales.'; end if;
+ if exists(select 1 from jsonb_array_elements(coalesce(new.data->'menuItems','[]')) item where jsonb_typeof(item->'amount') is distinct from 'number' or (item->>'amount')::numeric < 0 or (item->>'amount')::numeric <> round((item->>'amount')::numeric,2) or coalesce(length(trim(item->>'name')),0)=0) then raise exception 'Revisá los nombres e importes de los gastos.'; end if;
+ if tg_op='INSERT' then
+   if new.data ?| array['cancelledAt','cancelledBy','cancellationReason'] then raise exception 'Los eventos nuevos no incluyen una cancelación.'; end if;
+   if following <> 'open' then raise exception 'Los eventos nuevos deben abrir inscripciones.'; end if;
+   return new;
+ end if;
+ previous := old.data->>'status';
+ if previous='cancelled' then raise exception 'El evento está cancelado y no se puede modificar ni reabrir.'; end if;
+ if following='cancelled' then
+   if not app_private.is_group_member() or not app_private.is_group_admin() then raise exception 'Solo el administrador puede cancelar.' using errcode='42501'; end if;
+   if previous<>'open' then raise exception 'Solo se puede cancelar antes de iniciar el partido.'; end if;
+   if new.id<>old.id or new.created_by<>old.created_by or new.created_at<>old.created_at then raise exception 'La identidad del evento no se modifica.'; end if;
+   if jsonb_typeof(new.data->'cancellationReason') is distinct from 'string' or length(btrim(new.data->>'cancellationReason')) not between 3 and 300 then raise exception 'Indicá un motivo de entre 3 y 300 caracteres.'; end if;
+   if (new.data-array['status','cancelledAt','cancelledBy','cancellationReason']) is distinct from (old.data-array['status','cancelledAt','cancelledBy','cancellationReason']) then raise exception 'La cancelación no puede alterar otros datos del evento.'; end if;
+   new.data:=new.data||jsonb_build_object('cancellationReason',btrim(new.data->>'cancellationReason'),'cancelledAt',now(),'cancelledBy',auth.uid());
+   new.version:=old.version+1;
+   return new;
+ end if;
+ if (new.data->'cancelledAt') is distinct from (old.data->'cancelledAt') or (new.data->'cancelledBy') is distinct from (old.data->'cancelledBy') or (new.data->'cancellationReason') is distinct from (old.data->'cancellationReason') then raise exception 'Los datos de cancelación solo se guardan al cancelar el evento.'; end if;
+ if previous='open' and following='playing' and not exists(select 1 from public.event_rsvps where event_id=new.id and plays_soccer) then raise exception 'Debe haber al menos un jugador confirmado para iniciar el partido.'; end if;
+ if (new.data->'matchPlayedPlayerIds') is distinct from (old.data->'matchPlayedPlayerIds') and not (previous='playing' and following='dinner') then raise exception 'Confirmá los presentes al cerrar el partido.'; end if;
+ if (new.data->'dinnerAttendedPlayerIds') is distinct from (old.data->'dinnerAttendedPlayerIds') and not (previous='dinner' and following='completed') then raise exception 'Confirmá los asistentes al cerrar la cena.'; end if;
+ if new.id <> old.id or new.created_by <> old.created_by or new.created_at <> old.created_at then raise exception 'La identidad del evento no se modifica.'; end if;
+ if following <> previous and not ((previous='open' and following='playing') or (previous='playing' and following='dinner') or (previous='dinner' and following='completed')) then
+   raise exception 'Transición de etapa inválida.';
+ end if;
+ if previous <> 'open' and ((new.data->'teams') is distinct from (old.data->'teams') or (new.data->'playerRoles') is distinct from (old.data->'playerRoles')) then raise exception 'Los equipos ya están cerrados.'; end if;
+ if previous in ('dinner','completed') and ((new.data->'pitchPrice') is distinct from (old.data->'pitchPrice') or (new.data->'matchPlayedPlayerIds') is distinct from (old.data->'matchPlayedPlayerIds')) then raise exception 'El reparto de cancha ya está cerrado.'; end if;
+ if previous='completed' and new.data is distinct from old.data then raise exception 'La cena y los gastos ya están cerrados.'; end if;
+ if following in ('dinner','completed') then
+   ids := coalesce(new.data->'matchPlayedPlayerIds','[]');
+   if jsonb_array_length(ids)=0 then raise exception 'Seleccioná al menos un jugador presente.'; end if;
+ end if;
+ if following='completed' and jsonb_array_length(coalesce(new.data->'dinnerAttendedPlayerIds','[]'))=0 then raise exception 'Seleccioná al menos un asistente a la cena.'; end if;
+ foreach key in array array['matchPlayedPlayerIds','dinnerAttendedPlayerIds'] loop
+   ids := coalesce(new.data->key,'[]');
+   if (select count(*) <> count(distinct value) from jsonb_array_elements_text(ids)) then raise exception 'Hay asistentes repetidos.'; end if;
+   if exists(select 1 from jsonb_array_elements_text(ids) x where not exists(select 1 from public.event_rsvps r where r.event_id=new.id and r.player_id::text=x.value)) then raise exception 'Hay asistentes que no pertenecen al evento.'; end if;
+ end loop;
+ if exists(select 1 from jsonb_array_elements(coalesce(new.data->'menuItems','[]')) item where not (item ? 'amount') or (item->>'amount')::numeric < 0 or (item->>'amount')::numeric <> round((item->>'amount')::numeric,2) or length(trim(item->>'name'))=0) then raise exception 'Revisá los nombres e importes de los gastos.'; end if;
+ new.version := old.version + 1;
+ if previous='playing' and following='dinner' then new.data := new.data || jsonb_build_object('matchClosedAt',now()); end if;
+ if previous='dinner' and following='completed' then new.data := new.data || jsonb_build_object('dinnerClosedAt',now()); end if;
+ return new;
+end $$;
+

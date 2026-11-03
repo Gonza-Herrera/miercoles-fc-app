@@ -28,7 +28,8 @@ const history = [
   event('dinner-open', '2026-10-14', 'dinner', ['a'], ['b'], 80, [999]),
   event('open', '2026-10-21', 'open', ['a'], ['a'], 999),
   event('playing', '2026-10-22', 'playing', ['a'], ['a'], 999),
-  event('empty', '2026-10-28', 'completed', [], [], 999)
+  event('empty', '2026-10-28', 'completed', [], [], 999),
+  event('cancelled', '2026-10-21', 'cancelled', ['a'], ['a'], 999)
 ];
 const month = calculateStatistics(history, 'month', today);
 assert.equal(month.matches, 2);

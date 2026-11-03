@@ -50,7 +50,7 @@ export const eventGuard: CanActivateFn = async () => {
   const auth = inject(AuthService);
   await waitForInit(auth);
   await state.loadEvent();
-  return state.hasEvent() ? true : router.createUrlTree(['/']);
+  return state.hasEvent() && !state.eventCancelled() ? true : router.createUrlTree(['/']);
 };
 
 export const teamEditGuard: CanActivateFn = async () => {

@@ -38,6 +38,8 @@ export class StatisticsComponent {
     return players.map(player => ({ ...player, count: player[metric],
       rank: players.findIndex(p => p[metric] === player[metric]) + 1 }));
   });
+  readonly cancelledEvents = computed(() => selectStatisticsHistory(this.data.history(), this.period())
+    .filter(row => row.data.status === 'cancelled').reverse());
   readonly closedEvents = computed(() => selectStatisticsHistory(this.data.history(), this.period())
     .filter(row => ['dinner', 'completed'].includes(row.data.status)).reverse());
   readonly ranking = computed(() => {

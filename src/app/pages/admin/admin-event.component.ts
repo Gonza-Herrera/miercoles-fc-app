@@ -52,6 +52,9 @@ import { EventStateService } from '../../services/event-state.service';
           </div>
 
         </div>
+        @if (editing && state.canCancelEvent()) {
+          <a class="btn btn-outline btn-block" style="margin-top:20px;color:var(--danger);border-color:var(--danger)" routerLink="/admin/cancelar-evento">Cancelar evento</a>
+        }
       </div>
 
       @if (state.error()) {

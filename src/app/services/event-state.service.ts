@@ -34,11 +34,13 @@ export class EventStateService {
   private version = 0;
   private retryAction: (() => Promise<boolean>) | null = null;
   readonly matchClosed = computed(() => ['dinner', 'completed'].includes(this.currentEvent().status));
+  readonly eventCancelled = computed(() => this.currentEvent().status === 'cancelled');
+  readonly canCancelEvent = computed(() => this.hasEvent() && this.auth.isAdmin() && this.currentEvent().status === 'open');
   readonly dinnerClosed = computed(() => this.currentEvent().status === 'completed');
   readonly canEditTeams = computed(() => this.auth.isAdmin() && this.currentEvent().status === 'open' && !this.currentEvent().captainDraft);
-  readonly canEditDinnerItems = computed(() => this.hasEvent() && this.auth.isLoggedIn() && !this.dinnerClosed() &&
+  readonly canEditDinnerItems = computed(() => this.hasEvent() && this.auth.isLoggedIn() && !this.eventCancelled() && !this.dinnerClosed() &&
     (this.auth.isAdmin() || this.currentEvent().dinnerShopperPlayerId === this.auth.currentUser()?.id));
-  readonly canEditDinner = computed(() => this.auth.isAdmin() && !this.dinnerClosed());
+  readonly canEditDinner = computed(() => this.auth.isAdmin() && !this.eventCancelled() && !this.dinnerClosed());
 
   constructor() {
     effect(() => {
@@ -171,7 +173,7 @@ export class EventStateService {
   getEventVersion(): number { return this.version; }
 
   updateEvent(update: (event: SoccerEvent) => SoccerEvent, expectedVersion = this.version): Promise<boolean> {
-    if (!this.hasEvent() || !this.auth.isAdmin()) return Promise.resolve(false);
+    if (!this.hasEvent() || !this.auth.isAdmin() || this.eventCancelled()) return Promise.resolve(false);
     const { id, attendances, matchPaidPlayerIds, dinnerPaidPlayerIds, ...data } = update(this.currentEvent());
     const version = expectedVersion;
     const operation = crypto.randomUUID();
@@ -207,7 +209,7 @@ export class EventStateService {
     version: number
   ): Promise<boolean> {
     if (!this.auth.isAdmin() || !this.hasEvent()) return Promise.resolve(false);
-    if (this.currentEvent().id !== eventId || this.dinnerClosed()) {
+    if (this.currentEvent().id !== eventId || this.dinnerClosed() || this.eventCancelled()) {
       this.error.set('El evento cambió o ya está finalizado. Volvé a Inicio y revisá sus datos.');
       return Promise.resolve(false);
     }
@@ -219,6 +221,15 @@ export class EventStateService {
     }
     return this.updateEvent(evt => ({ ...evt, title: data.title.trim(), date: data.date,
       time: data.time, location: data.location.trim(), pitchPrice: data.pitchPrice }), version);
+  }
+
+  cancelEvent(reason: string, eventId = this.currentEvent().id, version = this.version): Promise<boolean> {
+    if (!this.canCancelEvent() || this.canRetry() || this.currentEvent().id !== eventId) return Promise.resolve(false);
+    const cancellationReason = reason.trim();
+    if (cancellationReason.length < 3 || cancellationReason.length > 300) {
+      this.error.set('Indicá un motivo de entre 3 y 300 caracteres.'); return Promise.resolve(false);
+    }
+    return this.updateEvent(event => ({ ...event, status: 'cancelled', cancellationReason }), version);
   }
 
   startMatch() {

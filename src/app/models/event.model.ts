@@ -67,7 +67,10 @@ export interface SoccerEvent {
   pitchPrice: number; // e.g. 50000
   dinnerTitle: string; // e.g. "Asado"
   dinnerShopperPlayerId?: string; // Encargado general de hacer las compras de la cena
-  status: 'open' | 'playing' | 'dinner' | 'completed';
+  status: 'open' | 'playing' | 'dinner' | 'completed' | 'cancelled';
+  cancellationReason?: string;
+  cancelledAt?: string;
+  cancelledBy?: string;
   
   // Attendance confirmations (initial registration)
   attendances: Record<string, EventAttendance>;

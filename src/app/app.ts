@@ -121,6 +121,11 @@ export class App {
   readonly feedbackVisible = signal(false);
 
   constructor() {
+    effect(() => {
+      if (!this.state.eventCancelled()) return;
+      const url = this.router.url.split('?')[0];
+      if ((url.startsWith('/partido/') && !url.startsWith('/partido/resultados/')) || url.startsWith('/cena/') || url.startsWith('/pagos/') || ['/admin/editar-evento','/admin/cancelar-evento'].includes(url)) void this.router.navigate(['/']);
+    });
     effect(onCleanup => {
       const error = this.state.error();
       const notice = this.state.notice();

@@ -115,6 +115,15 @@
           }
         </section>
       }
+      @if (cancelledEvents().length) {
+        <section class="panel">
+          <h2>Fechas canceladas</h2>
+          @for (event of cancelledEvents(); track event.id) {
+            <div class="month-row"><h3>{{ event.data.title }}</h3><p>{{ event.data.date | date:'dd/MM/yyyy' }} · {{ event.data.cancellationReason }}</p></div>
+          }
+          <small>Estas fechas no cuentan como partidos ni cenas realizados.</small>
+        </section>
+      }
       <p class="method-note">Se usa la fecha del evento y la asistencia real confirmada por el admin, no las inscripciones iniciales.</p>
       <button class="btn btn-secondary refresh" (click)="data.load()">Actualizar estadísticas</button>
     }

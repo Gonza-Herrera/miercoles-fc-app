@@ -15,7 +15,7 @@ import { AuthService } from '../../services/auth.service';
         <div class="hero-overlay"></div>
         <div class="hero-content">
           <div class="hero-top">
-            <span class="hero-badge">⚽ {{ state.hasEvent() ? 'Próxima Fecha' : 'Miércoles FC' }}</span>
+            <span class="hero-badge">⚽ {{ state.eventCancelled() ? 'Evento cancelado' : state.hasEvent() ? 'Próxima Fecha' : 'Miércoles FC' }}</span>
             <!-- User avatar — opens profile sheet -->
             <button class="avatar-btn" (click)="openProfile()" [attr.aria-label]="'Perfil de ' + (auth.currentUser()?.name ?? 'usuario')">
               @if (auth.currentUser()?.avatarUrl) {
@@ -74,7 +74,16 @@ import { AuthService } from '../../services/auth.service';
           }
         </section>
       }
-      @if (state.hasEvent()) {
+      @if (state.eventCancelled()) {
+        <section class="empty-event" role="status">
+          <h2>Evento cancelado</h2>
+          <p>{{ event().cancellationReason }}</p>
+          @if (event().cancelledAt) { <small>{{ event().cancelledAt | date:'dd/MM/yyyy HH:mm' }}</small> }
+          <p>Las confirmaciones están cerradas. El administrador publicará una nueva fecha.</p>
+          @if (auth.isAdmin()) { <a class="btn btn-primary" routerLink="/admin/nuevo-evento">Crear nuevo evento</a> }
+        </section>
+      }
+      @if (state.hasEvent() && !state.eventCancelled()) {
       <!-- Quick Status Cards -->
       <div class="cards-grid">
         
@@ -166,9 +175,10 @@ import { AuthService } from '../../services/auth.service';
         <!-- ACCIONES RÁPIDAS DE GESTIÓN -->
         <div class="quick-admin-box">
           <div class="quick-title">Gestión del Miércoles</div>
-          @if (auth.isAdmin() && !state.dinnerClosed()) {
+          @if (auth.isAdmin() && !state.dinnerClosed() && !state.eventCancelled()) {
             <button class="btn btn-secondary" style="margin-bottom: 12px; width: 100%" routerLink="/admin/editar-evento">Editar evento</button>
           }
+          @if (state.canCancelEvent()) { <a class="btn btn-outline" style="margin-bottom:12px;width:100%;color:var(--danger);border-color:var(--danger)" routerLink="/admin/cancelar-evento">Cancelar evento</a> }
           <div class="quick-grid">
             <button class="quick-btn" [routerLink]="['/partido/resultados', event().id]">
               <span class="q-icon">🏆</span>
@@ -245,7 +255,7 @@ import { AuthService } from '../../services/auth.service';
         @if (auth.isAdmin()) { <button class="sheet-action sheet-action-primary" routerLink="/admin/acceso" (click)="closeProfile()">🔐 Administrar acceso</button> }
         <button class="sheet-action sheet-action-primary" routerLink="/mi-perfil" (click)="closeProfile()">👤 Mi perfil</button>
         <button class="sheet-action sheet-action-primary" routerLink="/notificaciones" (click)="closeProfile()">🔔 Notificaciones</button>
-        @if (auth.isAdmin() && state.hasEvent() && !state.dinnerClosed()) {
+        @if (auth.isAdmin() && state.hasEvent() && !state.dinnerClosed() && !state.eventCancelled()) {
           <button class="sheet-action sheet-action-primary" routerLink="/admin/editar-evento" (click)="closeProfile()">Editar evento</button>
         }
         <button class="sheet-action" id="btn-sign-out" (click)="signOut()">

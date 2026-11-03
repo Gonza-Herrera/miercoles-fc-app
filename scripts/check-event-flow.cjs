@@ -43,7 +43,11 @@ async function rpc(name, args) {
   if (name === 'save_event') {
     if (row.last_operation !== args.p_operation) {
       if (row.version !== args.p_version) return { data: null, error: { code: '40001', message: 'Conflict' } };
-      row.data = clone(args.p_data); row.version++; row.last_operation = args.p_operation;
+      if (row.data.status === 'cancelled') return { data: null, error: { code: 'P0001', message: 'Cancelled event is immutable' } };
+      if (args.p_data.status === 'cancelled' && row.data.status !== 'open') return { data: null, error: { code: 'P0001', message: 'Match already started' } };
+      row.data = clone(args.p_data);
+      if (row.data.status === 'cancelled') { row.data.cancelledAt = new Date().toISOString(); row.data.cancelledBy = 'admin'; }
+      row.version++; row.last_operation = args.p_operation;
     }
     result = { data: [clone(row)], error: null };
   } else if (name === 'dinner_item_action') {
@@ -179,6 +183,8 @@ function session(id, admin) {
   assert.equal(admin.dinnerPreviewCostPerPerson(), 50);
   assert.equal(await admin.setPayment('pitch', 'player', true), false, 'No cobros before closing');
   assert.equal(await admin.startMatch(), true);
+  assert.equal(admin.canCancelEvent(), false);
+  assert.equal(await admin.cancelEvent('Mal clima'), false);
   assert.equal(await admin.confirmMatch(['admin','player']), true);
   assert.equal(admin.matchClosed(), true);
   assert.equal(await admin.editEventDetails({ ...editData, pitchPrice: 1 }, admin.currentEvent().id, admin.getEventVersion()), false, 'Closed pitch price is protected');
@@ -208,5 +214,41 @@ function session(id, admin) {
   assert.equal(player.matchTotalCollected(),55000.01);
   assert.equal(player.payments().length,admin.payments().length);
   assert.equal(await player.updateMyAttendance(false,false),false);
+  await admin.createNewEvent({ ...input, title: 'Fecha suspendida' });
+  await admin.updateMyAttendance(true, true);
+  await player.loadEvent();
+  await player.updateMyAttendance(true, true);
+  await admin.loadEvent();
+  await admin.updateDinnerShopper('player');
+  await admin.addMenuItem('Pan ya comprado', 10);
+  await player.loadEvent();
+  assert.equal(admin.canCancelEvent(), true);
+  assert.equal(player.canCancelEvent(), false);
+  assert.equal(await player.cancelEvent('Mal clima'), false);
+  assert.equal(await admin.cancelEvent('  '), false);
+  const beforeCancellation = clone(admin.currentEvent());
+  network = 'lost-response';
+  assert.equal(await admin.cancelEvent('Mal clima'), false);
+  assert.equal(admin.currentEvent().status, 'open', 'Cancellation must wait for server confirmation');
+  assert.equal(await admin.cancelEvent('Otra cancelación'), false, 'Resolve the uncertain operation before starting another');
+  assert.equal(await admin.retryLastSave(), true);
+  assert.equal(admin.currentEvent().status, 'cancelled');
+  assert.equal(admin.currentEvent().cancellationReason, 'Mal clima');
+  assert.equal(admin.currentEvent().cancelledBy, 'admin');
+  assert.equal(JSON.stringify(admin.currentEvent().attendances), JSON.stringify(beforeCancellation.attendances));
+  assert.equal(JSON.stringify(admin.currentEvent().menuItems), JSON.stringify(beforeCancellation.menuItems));
+  assert.equal(admin.eventCancelled(), true);
+  assert.equal(admin.canCancelEvent(), false);
+  assert.equal(admin.canEditDinner(), false);
+  assert.equal(await admin.startMatch(), false);
+  assert.equal(await admin.editEventDetails(editData, admin.currentEvent().id, admin.getEventVersion()), false);
+  await player.loadEvent();
+  assert.equal(player.canEditDinnerItems(), false);
+  assert.equal(await player.updateMyAttendance(true, false), false);
+  assert.equal(await player.addMenuItem('No permitido', 1), false);
+  await admin.createNewEvent({ ...input, title: 'Nueva fecha' });
+  assert.equal(admin.currentEvent().status, 'open');
+  assert.equal(admin.currentEvent().cancellationReason, undefined);
+  assert.equal(admin.currentEvent().menuItems.length, 0);
   console.log('PASS: isolated admin/player sessions; confirmed-only saves; offline retry; lost responses; idempotent event/payment creation; stale version conflict; exact cent splits; stage transitions; immutable ledger totals; audited cancellation; reload consistency.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

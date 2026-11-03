@@ -391,3 +391,34 @@ La nueva interfaz necesita publicarse mediante commit y push a Netlify.
 por admin/encargado, rechazo de usuarios comunes, validaciones, conflictos,
 reintentos, cambios de encargado, revocación de acceso y cierre de la cena. Sus
 datos de prueba se revierten por completo con `ROLLBACK`.
+
+## Cancelar una fecha antes de jugar
+
+El administrador puede abrir **Inicio → Cancelar evento** o acceder a esa opción
+al editar una fecha. Solo está disponible con inscripciones abiertas (`open`),
+antes de pulsar **Iniciar partido**. Se pide un motivo de 3 a 300 caracteres y una
+confirmación explícita. Cancelar suspende el evento completo, partido y cena.
+
+El servidor marca `status=cancelled`, registra el motivo, la fecha y el UID del
+administrador. Conserva confirmaciones, equipos y gastos. La cancelación es
+terminal: no permite reabrir, editar, modificar ítems o registrar asistencias.
+Para reprogramar, crear un evento nuevo. Los cancelados siguen visibles en Inicio
+hasta publicar otra fecha, y quedan listados en Estadísticas → Fechas canceladas,
+sin sumarse a partidos, cenas ni presencias realizadas.
+
+La transición usa `save_event` con control de versión y reintento de la misma
+operación. Si otro administrador inicia el partido mientras está abierto el
+formulario de cancelación, el servidor rechaza el guardado. Las pantallas internas
+redirigen a Inicio al detectar una cancelación mediante la actualización periódica.
+No se envían notificaciones push automáticamente.
+
+`database/cancel-events.sql` está aplicado al proyecto actual. En otras
+instalaciones debe aplicarse después del esquema de eventos y del acceso por
+invitación. También se actualizaron los archivos fuente de la validación de etapas.
+
+`npm run test:flow` verifica permisos, bloqueo posterior al inicio, estado terminal,
+conservación y reintentos. `npm run test:statistics` comprueba que las cancelaciones
+no alteren las métricas. `database/tests/cancel-events.sql` verifica los permisos,
+auditoría, inmutabilidad, bloqueo de gastos/confirmaciones/equipos y conflictos con
+el inicio del partido mediante eventos sintéticos que se revierten con ROLLBACK.
+La nueva interfaz se publica con el commit y push habituales a Netlify.

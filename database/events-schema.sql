@@ -8,7 +8,7 @@ create table public.event_records (
  length(trim(data->>'title')) > 0 and length(trim(data->>'location')) > 0 and
  (data->>'date') ~ '^\d{4}-\d{2}-\d{2}$' and
  (data->>'time') ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$' and
- (data->>'pitchPrice')::numeric > 0 and data->>'status' in ('open','playing','dinner','completed')
+ (data->>'pitchPrice')::numeric > 0 and data->>'status' in ('open','playing','dinner','completed','cancelled')
  and data ?& array['title','location','date','time','pitchPrice','status'])
 );
 alter table public.event_records enable row level security;
