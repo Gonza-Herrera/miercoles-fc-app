@@ -129,6 +129,16 @@ import { EventStateService } from '../../services/event-state.service';
           <h4>Detalle de compras y gastos</h4>
         </div>
 
+        @if (state.canRetry() && state.canEditDinnerItems()) {
+          <div class="add-item-card" role="status">
+            <p>No pudimos confirmar el guardado. Reintentá el mismo cambio o actualizá los datos antes de seguir.</p>
+            <div class="form-actions">
+              <button class="btn btn-secondary btn-sm" [disabled]="state.saving()" (click)="state.refreshAfterError()">Actualizar datos</button>
+              <button class="btn btn-primary btn-sm" [disabled]="state.saving()" (click)="state.retryLastSave()">Reintentar guardado</button>
+            </div>
+          </div>
+        }
+
         <!-- Menu items list -->
         <div class="menu-list">
           @for (item of state.currentEvent().menuItems; track item.id) {
@@ -148,8 +158,8 @@ import { EventStateService } from '../../services/event-state.service';
               </div>
               <div class="item-right">
                 <span class="item-amount">\${{ item.amount | number }}</span>
-                @if (state.canEditDinner()) {
-                <button class="btn-delete" (click)="removeItem(item.id)">
+                @if (state.canEditDinnerItems()) {
+                <button class="btn-delete" [disabled]="state.saving() || state.canRetry()" [attr.aria-label]="'Quitar ' + item.name" (click)="removeItem(item.id)">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
                     <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -162,7 +172,7 @@ import { EventStateService } from '../../services/event-state.service';
         </div>
 
         <!-- Modal or Inline Add Item -->
-        @if (state.canEditDinner() && showAddForm()) {
+        @if (state.canEditDinnerItems() && showAddForm()) {
           <div class="add-item-card">
             <h4>Agregar gasto de la cena</h4>
             <div class="form-row">
@@ -191,12 +201,12 @@ import { EventStateService } from '../../services/event-state.service';
             </div>
             <div class="form-actions">
               <button class="btn btn-secondary btn-sm" (click)="showAddForm.set(false)">Cancelar</button>
-              <button class="btn btn-primary btn-sm" (click)="confirmAddItem()">Guardar ítem</button>
+              <button class="btn btn-primary btn-sm" [disabled]="state.saving() || state.canRetry()" (click)="confirmAddItem()">Guardar ítem</button>
             </div>
           </div>
-        } @else if (state.canEditDinner()) {
+        } @else if (state.canEditDinnerItems()) {
           <!-- Add Item Button -->
-          <button class="btn-add-item" (click)="showAddForm.set(true)">
+          <button class="btn-add-item" [disabled]="state.saving() || state.canRetry()" (click)="showAddForm.set(true)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18">
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -785,12 +795,12 @@ export class DinnerMenuComponent {
   }
 
   removeItem(id: string) {
-    if (!this.state.canEditDinner()) return;
+    if (!this.state.canEditDinnerItems()) return;
     this.state.removeMenuItem(id);
   }
 
   async confirmAddItem() {
-    if (!this.state.canEditDinner()) return;
+    if (!this.state.canEditDinnerItems()) return;
     if (!this.newItemName.trim() || this.newItemAmount === null || !Number.isFinite(this.newItemAmount) || this.newItemAmount <= 0) return;
     if (!await this.state.addMenuItem(this.newItemName, this.newItemAmount, getDinnerItemIcon(this.newItemName), this.newItemBuyerId)) return;
     this.newItemName = '';

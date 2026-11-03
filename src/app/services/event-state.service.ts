@@ -36,6 +36,8 @@ export class EventStateService {
   readonly matchClosed = computed(() => ['dinner', 'completed'].includes(this.currentEvent().status));
   readonly dinnerClosed = computed(() => this.currentEvent().status === 'completed');
   readonly canEditTeams = computed(() => this.auth.isAdmin() && this.currentEvent().status === 'open' && !this.currentEvent().captainDraft);
+  readonly canEditDinnerItems = computed(() => this.hasEvent() && this.auth.isLoggedIn() && !this.dinnerClosed() &&
+    (this.auth.isAdmin() || this.currentEvent().dinnerShopperPlayerId === this.auth.currentUser()?.id));
   readonly canEditDinner = computed(() => this.auth.isAdmin() && !this.dinnerClosed());
 
   constructor() {
@@ -494,19 +496,16 @@ export class EventStateService {
   }
 
   addMenuItem(name: string, amount: number, icon = '🍽️', buyerPlayerId?: string) {
-    if (!this.canEditDinner()) return Promise.resolve(false);
+    if (!this.canEditDinnerItems()) return Promise.resolve(false);
     if (!name.trim() || !Number.isFinite(amount) || amount < 0 || Math.abs(Math.round(amount * 100) - amount * 100) > 0.00001) return Promise.resolve(false);
     const newItem: MenuItem = {
       id: crypto.randomUUID(),
-      name,
+      name: name.trim(),
       amount,
       icon,
       buyerPlayerId
     };
-    return this.updateEvent(evt => ({
-      ...evt,
-      menuItems: [...evt.menuItems, newItem]
-    }));
+    return this.mutateDinnerItem('add', newItem);
   }
 
   updateItemBuyer(itemId: string, buyerPlayerId?: string) {
@@ -520,11 +519,24 @@ export class EventStateService {
   }
 
   removeMenuItem(id: string) {
-    if (!this.canEditDinner()) return Promise.resolve(false);
-    return this.updateEvent(evt => ({
-      ...evt,
-      menuItems: evt.menuItems.filter(item => item.id !== id)
-    }));
+    if (!this.canEditDinnerItems()) return Promise.resolve(false);
+    return this.mutateDinnerItem('remove', { itemId: id });
+  }
+
+  private mutateDinnerItem(action: 'add' | 'remove', payload: MenuItem | { itemId: string }): Promise<boolean> {
+    if (this.canRetry()) return Promise.resolve(false);
+    const actor = this.auth.currentUser()?.id;
+    const eventId = this.currentEvent().id, version = this.version, operation = crypto.randomUUID();
+    const request = JSON.parse(JSON.stringify(payload));
+    return this.runSave(async () => {
+      const { data: rows, error } = await this.sb.rpc('dinner_item_action', {
+        p_event_id: eventId, p_version: version, p_operation: operation, p_action: action, p_payload: request
+      }).abortSignal(AbortSignal.timeout(15000));
+      if (error) throw error;
+      if (!rows?.[0]) throw new Error('No se recibió confirmación.');
+      if (this.auth.currentUser()?.id !== actor) throw { code: '42501', message: 'La sesión cambió. Volvé a ingresar.' };
+      this.applyRecord(rows[0]);
+    });
   }
 
   async createNewEvent(data: Partial<SoccerEvent>): Promise<boolean> {

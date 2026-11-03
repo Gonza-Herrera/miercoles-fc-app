@@ -366,3 +366,28 @@ volver a abrirla. Si conserva la franja difuminada, quitar el acceso de la panta
 de inicio y agregarlo nuevamente desde Safari. Probar Inicio y una vista interna,
 tanto al entrar como después de hacer scroll. La compilación o una emulación de
 navegador no verifican el efecto nativo de la barra de estado: requiere un iPhone.
+
+## Permisos del encargado de compras en Cena
+
+El administrador y el usuario asignado en `dinnerShopperPlayerId` pueden agregar
+ítems y quitar cualquier ítem del detalle de compras y gastos mientras la cena no
+esté cerrada. El título del menú, la asignación del encargado, el botón Continuar
+y la confirmación de asistentes conservan su permiso exclusivo de administrador.
+El permiso pertenece a la asignación de ese evento, no es un rol global.
+
+`canEditDinnerItems` controla únicamente los botones de gastos. Las altas y bajas
+se guardan con `dinner_item_action`, una RPC que comprueba la membresía, el admin
+o encargado actual, la etapa, la versión y la identidad de la operación. Solo
+modifica `menuItems`: el encargado no recibe permisos generales de UPDATE sobre
+el evento. Si cambia el encargado, el anterior pierde el permiso en el siguiente
+intento de guardar. Un reintento conserva su ID para evitar compras duplicadas.
+
+`database/dinner-item-permissions.sql` está aplicado al Supabase actual. Para otra
+instalación, aplicarlo después de los esquemas de eventos y acceso por invitación.
+La nueva interfaz necesita publicarse mediante commit y push a Netlify.
+
+`npm run test:flow` cubre los permisos y reintentos del cliente.
+`database/tests/dinner-item-permissions.sql` verifica con roles reales la edición
+por admin/encargado, rechazo de usuarios comunes, validaciones, conflictos,
+reintentos, cambios de encargado, revocación de acceso y cierre de la cena. Sus
+datos de prueba se revierten por completo con `ROLLBACK`.

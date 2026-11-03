@@ -6,6 +6,7 @@ const ts = require('typescript');
 const clone = value => JSON.parse(JSON.stringify(value));
 const database = { event_records: [], event_rsvps: [], event_payments: [] };
 let network = 'ok', currentAuth;
+const menuOperations = new Map();
 const failure = () => ({ data: null, error: new Error('Offline') });
 function query(table) {
   let operation = 'select', payload;
@@ -43,6 +44,16 @@ async function rpc(name, args) {
     if (row.last_operation !== args.p_operation) {
       if (row.version !== args.p_version) return { data: null, error: { code: '40001', message: 'Conflict' } };
       row.data = clone(args.p_data); row.version++; row.last_operation = args.p_operation;
+    }
+    result = { data: [clone(row)], error: null };
+  } else if (name === 'dinner_item_action') {
+    if (!menuOperations.has(args.p_operation)) {
+      if (row.version !== args.p_version) return { data: null, error: { code: '40001' } };
+      row.data.menuItems = args.p_action === 'add'
+        ? [...row.data.menuItems, clone(args.p_payload)]
+        : row.data.menuItems.filter(item => item.id !== args.p_payload.itemId);
+      row.version++; row.last_operation = args.p_operation;
+      menuOperations.set(args.p_operation, true);
     }
     result = { data: [clone(row)], error: null };
   } else {
@@ -145,6 +156,25 @@ function session(id, admin) {
   assert.equal(await player.updateDinnerTitle('Forbidden'), false);
   assert.equal(await player.setPayment('pitch', 'player', true), false);
   assert.equal(JSON.stringify(player.currentEvent()), beforePlayer);
+  assert.equal(player.canEditDinnerItems(), false);
+  assert.equal(await player.addMenuItem('Forbidden', 10), false);
+  assert.equal(await admin.updateDinnerShopper('player'), true);
+  await player.loadEvent();
+  assert.equal(player.canEditDinnerItems(), true);
+  assert.equal(player.canEditDinner(), false);
+  assert.equal(await player.updateDinnerShopper('player'), false);
+  assert.equal(await player.updateDinnerTitle('Forbidden shopper title'), false);
+  network = 'lost-response';
+  assert.equal(await player.addMenuItem('Pan', 1), false);
+  assert.equal(player.currentEvent().menuItems.length, 0, 'Unconfirmed expense must not appear saved');
+  assert.equal(await player.addMenuItem('Pan', 1), false, 'An uncertain expense must be resolved before submitting a new one');
+  await admin.loadEvent();
+  assert.equal(await admin.addMenuItem('Carne', 1), true);
+  assert.equal(await player.retryLastSave(), true);
+  assert.equal(player.currentEvent().menuItems.length, 2, 'Retry must preserve later admin expense and avoid duplicates');
+  for (const item of [...player.currentEvent().menuItems]) assert.equal(await player.removeMenuItem(item.id), true);
+  await admin.loadEvent();
+  assert.equal(admin.currentEvent().menuItems.length, 0);
   assert.equal(await admin.addMenuItem('Comida', 100.01), true);
   assert.equal(admin.dinnerPreviewCostPerPerson(), 50);
   assert.equal(await admin.setPayment('pitch', 'player', true), false, 'No cobros before closing');
@@ -173,6 +203,8 @@ function session(id, admin) {
   assert(voided.voided_at && voided.voided_by);
   await player.loadEvent();
   assert.equal(player.currentEvent().status,'completed');
+  assert.equal(player.canEditDinnerItems(),false);
+  assert.equal(await player.addMenuItem('Closed',1),false);
   assert.equal(player.matchTotalCollected(),55000.01);
   assert.equal(player.payments().length,admin.payments().length);
   assert.equal(await player.updateMyAttendance(false,false),false);
